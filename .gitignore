@@ -1,0 +1,7 @@
+.idea
+.coverage
+.vscode
+
+# Ignore binary
+/bin
+/cmd/sockshop/sockshop

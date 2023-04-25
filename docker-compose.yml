@@ -1,0 +1,23 @@
+version: "3.7"
+
+services:
+  sockshop-db:
+    image: mysql:5.7
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: true
+      MYSQL_DATABASE: socksdb
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_USER: sockshop
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    expose:
+      - "3306"
+    volumes:
+      - sockshop-db-vol:/var/lib/mysql
+      - ./deploy/docker/sockshop-db:/docker-entrypoint-initdb.d
+
+
+# Names our volume
+volumes:
+  sockshop-db-vol:
