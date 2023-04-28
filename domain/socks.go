@@ -2,6 +2,8 @@ package domain
 
 import (
 	"context"
+
+	"github.com/oshankkumar/sockshop/pkg/sql"
 )
 
 type Tag struct {
@@ -20,8 +22,13 @@ type Sock struct {
 }
 
 type SockStore interface {
+	SockStoreTransctioner
 	SockStoreReader
 	SockStoreWriter
+}
+
+type SockStoreTransctioner interface {
+	WithTx(sql.DB) SockStore
 }
 
 type SockStoreReader interface {

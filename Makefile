@@ -23,3 +23,6 @@ endef
 
 build:
 	$(call MAKE_GO_BUILD,sockshop)
+
+build-linux:
+	$(call MAKE_GO_BUILD_LINUX,sockshop)

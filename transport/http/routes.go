@@ -21,7 +21,7 @@ func (h HTTPHandlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) *Erro
 	return h(w, r)
 }
 
-func Handler(h HTTPHandler) http.Handler {
+func ToStdHandler(h HTTPHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if apiErr := h.ServeHTTP(w, r); apiErr != nil {
 			RespondJSON(w, apiErr, apiErr.Code)

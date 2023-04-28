@@ -3,17 +3,29 @@ package api
 import "context"
 
 type (
+	// Health describes the health of a service
+	HealthResponse struct {
+		Healths []Health `json:"healths"`
+	}
+
+	Health struct {
+		Service string `json:"service"`
+		Status  string `json:"status"`
+		Time    string `json:"time"`
+		Details any    `json:"details"`
+	}
+
 	Sock struct {
 		ID          string   `json:"id"`
 		Name        string   `json:"name"`
 		Description string   `json:"description"`
 		ImageURL    []string `json:"imageUrl"`
-		Price       float32  `json:"price"`
+		Price       float64  `json:"price"`
 		Count       int      `json:"count"`
 		Tags        []string `json:"tag"`
 	}
 
-	ListSockRequest struct {
+	ListSockParams struct {
 		Tags     []string
 		Order    string
 		PageNum  int
@@ -24,7 +36,11 @@ type (
 		Socks []Sock `json:"sock"`
 	}
 
+	CountTagsResponse struct {
+		Size int `json:"size"`
+	}
+
 	CatalogueService interface {
-		ListSocks(ctx context.Context, req *ListSockRequest) (*ListSockResponse, error)
+		ListSocks(ctx context.Context, req *ListSockParams) (*ListSockResponse, error)
 	}
 )

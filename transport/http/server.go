@@ -7,23 +7,31 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/oshankkumar/sockshop/domain"
+
 	"go.uber.org/zap"
 )
 
 type Server struct {
-	sockLister sockLister
-	router     *mux.Router
-	logger     *zap.Logger
+	sockLister    sockLister
+	router        *mux.Router
+	logger        *zap.Logger
+	healthChecker healthChecker
+	sockStore     domain.SockStore
 }
 
 func NewServer(
 	sockLister sockLister,
 	logger *zap.Logger,
+	healthChecker healthChecker,
+	sockStore domain.SockStore,
 ) *Server {
 	s := &Server{
-		sockLister: sockLister,
-		router:     mux.NewRouter(),
-		logger:     logger,
+		sockLister:    sockLister,
+		router:        mux.NewRouter(),
+		logger:        logger,
+		healthChecker: healthChecker,
+		sockStore:     sockStore,
 	}
 	return s
 }
@@ -68,5 +76,19 @@ func (s *Server) Start(ctx context.Context, addr string) error {
 }
 
 func (s *Server) initRoutes() {
-	s.router.Methods("GET").Path("/catalogue").Handler(Handler(ListSocksHandler(s.sockLister)))
+	routes := []struct {
+		method  string
+		path    string
+		handler HTTPHandler
+	}{
+		{http.MethodGet, "/health", HealthCheckHandler(s.healthChecker)},
+		{http.MethodGet, "/catalogue", ListSocksHandler(s.sockLister)},
+		{http.MethodGet, "/catalogue/size", CountTagsHandler(s.sockStore)},
+		{http.MethodGet, "/catalogue/{id}", GetSockHandler(s.sockStore)},
+	}
+
+	for _, route := range routes {
+		h := WithLogging(s.logger)(route.handler)
+		s.router.Methods(route.method).Path(route.path).Handler(ToStdHandler(h))
+	}
 }

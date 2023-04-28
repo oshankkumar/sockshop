@@ -7,12 +7,15 @@ import (
 	"log"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/oshankkumar/sockshop/api"
 	"github.com/oshankkumar/sockshop/internal/app"
 	"github.com/oshankkumar/sockshop/internal/pkg/mysql"
 	"github.com/oshankkumar/sockshop/transport/http"
 
+	_ "github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
 )
 
@@ -53,8 +56,30 @@ func run(ctx context.Context, conf AppConfig) error {
 
 	log.Println("starting app http server :9090")
 
-	return http.NewServer(
+	server := http.NewServer(
 		catalogueSvc,
 		logger,
-	).Start(ctx, ":9090")
+		doHealthCheck(db),
+		sockStore,
+	)
+
+	return server.Start(ctx, ":9090")
+}
+
+func doHealthCheck(db *sqlx.DB) http.HealthCheckerFunc {
+	return func(ctx context.Context) ([]api.Health, error) {
+		if err := db.PingContext(ctx); err != nil {
+			return nil, fmt.Errorf("db ping: %w", err)
+		}
+
+		var i int
+		if err := db.Get(&i, "SELECT 1"); err != nil {
+			return nil, fmt.Errorf("db read: %w", err)
+		}
+
+		return []api.Health{
+			{Service: "sockshop", Status: "OK", Time: time.Now().Local().String()},
+			{Service: "sockshop-db", Status: "OK", Time: time.Now().Local().String(), Details: db.Stats()},
+		}, nil
+	}
 }

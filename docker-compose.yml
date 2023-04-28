@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   sockshop-db:
-    image: mysql:5.7
+    image: mysql:5.7.34
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: true
       MYSQL_DATABASE: socksdb
@@ -17,7 +17,27 @@ services:
       - sockshop-db-vol:/var/lib/mysql
       - ./deploy/docker/sockshop-db:/docker-entrypoint-initdb.d
 
+  sockshop:
+    image: golang:1.20.3
+    command: >
+      bash -c "make build-linux 
+      && ./bin/linux-amd64/sockshop --mysql-conn-str 'sockshop:password@tcp(sockshop-db:3306)/socksdb'"
+    working_dir: /sockshop
+    init: true
+    ports:
+      - 9090:9090
+    environment:
+      APP_ENV: dev
+      REDIS_ADDRESS: redis:6379
+      BATCH_SIZE: 1
+      PATH_REPLACEMENTS: '[{"name": "SeoPathReplacer", "pattern": "/seo/[^_]+_", "replacement": "/asr/"}]'
+    volumes:
+      - ./:/sockshop
+      - go-mod-cache:/go/pkg/mod
+    depends_on:
+      - sockshop-db
 
 # Names our volume
 volumes:
   sockshop-db-vol:
+  go-mod-cache:
