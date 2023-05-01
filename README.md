@@ -30,11 +30,11 @@ See [/domain](./domain/) package for example.
 
 ### `/internal`
 
-This package should provide the private application code. It should define the concrete types having methods with actual business/ logic.
+This package should provide the private application code. It should define the concrete types having methods with actual business logic.
 Your application code can go in the `/internal/app` packgae.
 It will contain concrete types which can implement intefaces defined in `/api` package.
 
-You can define packages like `internal/db`, `internal/<api-client> ` ..etc Which will define concrete types implementing interfaces defined in `/domain` package. 
+You can define packages like `internal/db`, `internal/<api-client> ` ..etc. Which will define concrete types implementing interfaces defined in `/domain` package. 
 
 See [/internal](./internal/) package for example. 
 
