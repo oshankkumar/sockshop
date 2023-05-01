@@ -2,9 +2,12 @@ package domain
 
 import (
 	"context"
+	"errors"
 
-	"github.com/oshankkumar/sockshop/pkg/sql"
+	"github.com/google/uuid"
 )
+
+var ErrNotFound = errors.New("not found")
 
 type Tag struct {
 	ID   string
@@ -12,7 +15,7 @@ type Tag struct {
 }
 
 type Sock struct {
-	ID          string
+	ID          uuid.UUID
 	Name        string
 	Description string
 	ImageURLs   string
@@ -22,13 +25,8 @@ type Sock struct {
 }
 
 type SockStore interface {
-	SockStoreTransctioner
 	SockStoreReader
 	SockStoreWriter
-}
-
-type SockStoreTransctioner interface {
-	WithTx(sql.DB) SockStore
 }
 
 type SockStoreReader interface {

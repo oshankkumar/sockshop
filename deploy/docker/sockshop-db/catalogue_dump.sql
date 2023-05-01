@@ -34,7 +34,7 @@ INSERT INTO sock VALUES ("510a0d7e-8e83-4193-b483-e27e09ddc34d", "SuperSport XL"
 INSERT INTO sock VALUES ("03fef6ac-1896-4ce8-bd69-b798f85c6e0b", "Holy", "Socks fit for a Messiah. You too can experience walking in water with these special edition beauties. Each hole is lovingly proggled to leave smooth edges. The only sock approved by a higher power.",  99.99, 1, "/catalogue/images/holy_1.jpeg,/catalogue/images/holy_2.jpeg");
 INSERT INTO sock VALUES ("d3588630-ad8e-49df-bbd7-3167f7efb246", "YouTube.sock", "We were not paid to sell this sock. It's just a bit geeky.",  10.99, 801, "/catalogue/images/youtube_1.jpeg,/catalogue/images/youtube_2.jpeg");
 INSERT INTO sock VALUES ("819e1fbf-8b7e-4f6d-811f-693534916a8b", "Figueroa", "enim officia aliqua excepteur esse deserunt quis aliquip nostrud anim",  14, 808, "/catalogue/images/WAT.jpg,/catalogue/images/WAT2.jpg");
-INSERT INTO sock VALUES ("zzz4f044-b040-410d-8ead-4de0446aec7e", "Classic", "Keep it simple.",  12, 127, "/catalogue/images/classic.jpg,/catalogue/images/classic2.jpg");
+INSERT INTO sock VALUES ("647d653f-14ed-4391-bc00-ed6ee2687b51", "Classic", "Keep it simple.",  12, 127, "/catalogue/images/classic.jpg,/catalogue/images/classic2.jpg");
 INSERT INTO sock VALUES ("3395a43e-2d88-40de-b95f-e00e1502085b", "Colourful", "proident occaecat irure et excepteur labore minim nisi amet irure",  18, 438, "/catalogue/images/colourful_socks.jpg,/catalogue/images/colourful_socks.jpg");
 INSERT INTO sock VALUES ("837ab141-399e-4c1f-9abc-bace40296bac", "Cat socks", "consequat amet cupidatat minim laborum tempor elit ex consequat in",  15, 175, "/catalogue/images/catsocks.jpg,/catalogue/images/catsocks2.jpg");
 
@@ -68,8 +68,8 @@ INSERT INTO sock_tag VALUES ("d3588630-ad8e-49df-bbd7-3167f7efb246", "3");
 INSERT INTO sock_tag VALUES ("819e1fbf-8b7e-4f6d-811f-693534916a8b", "3");
 INSERT INTO sock_tag VALUES ("819e1fbf-8b7e-4f6d-811f-693534916a8b", "11");
 INSERT INTO sock_tag VALUES ("819e1fbf-8b7e-4f6d-811f-693534916a8b", "4");
-INSERT INTO sock_tag VALUES ("zzz4f044-b040-410d-8ead-4de0446aec7e", "1");
-INSERT INTO sock_tag VALUES ("zzz4f044-b040-410d-8ead-4de0446aec7e", "11");
+INSERT INTO sock_tag VALUES ("647d653f-14ed-4391-bc00-ed6ee2687b51", "1");
+INSERT INTO sock_tag VALUES ("647d653f-14ed-4391-bc00-ed6ee2687b51", "11");
 INSERT INTO sock_tag VALUES ("3395a43e-2d88-40de-b95f-e00e1502085b", "1");
 INSERT INTO sock_tag VALUES ("3395a43e-2d88-40de-b95f-e00e1502085b", "4");
 INSERT INTO sock_tag VALUES ("837ab141-399e-4c1f-9abc-bace40296bac", "1");
@@ -77,5 +77,50 @@ INSERT INTO sock_tag VALUES ("837ab141-399e-4c1f-9abc-bace40296bac", "11");
 INSERT INTO sock_tag VALUES ("837ab141-399e-4c1f-9abc-bace40296bac", "3");
 
 
+CREATE TABLE IF NOT EXISTS customer (
+	id varchar(40) NOT NULL, 
+	first_name varchar(20), 
+	last_name varchar(20), 
+	email varchar(20), 
+	username varchar(20), 
+	password varchar(20), 
+	salt varchar(20),
+	PRIMARY KEY(id)
+);
+
+CREATE TABLE IF NOT EXISTS address (
+	id varchar(40) NOT NULL, 
+	street varchar(20), 
+	number varchar(20), 
+	country varchar(20), 
+	city varchar(20), 
+	postcode varchar(20), 
+	PRIMARY KEY(id)
+);
 
 
+CREATE TABLE IF NOT EXISTS card (
+	id varchar(40) NOT NULL, 
+	long_num varchar(60), 
+	expires varchar(20), 
+	ccv varchar(20), 
+	PRIMARY KEY(id)
+);
+
+CREATE TABLE IF NOT EXISTS customer_address (
+	customer_id varchar(40), 
+	address_id varchar(40), 
+	FOREIGN KEY (customer_id) 
+		REFERENCES customer(id), 
+	FOREIGN KEY(address_id)
+		REFERENCES address(id)
+);
+
+CREATE TABLE IF NOT EXISTS customer_card (
+	customer_id varchar(40), 
+	card_id varchar(40), 
+	FOREIGN KEY (customer_id) 
+		REFERENCES customer(id), 
+	FOREIGN KEY(card_id)
+		REFERENCES card(id)
+);

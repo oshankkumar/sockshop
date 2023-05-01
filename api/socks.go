@@ -1,6 +1,10 @@
 package api
 
-import "context"
+import (
+	"context"
+
+	"github.com/google/uuid"
+)
 
 type (
 	// Health describes the health of a service
@@ -12,17 +16,17 @@ type (
 		Service string `json:"service"`
 		Status  string `json:"status"`
 		Time    string `json:"time"`
-		Details any    `json:"details"`
+		Details any    `json:"details,omitempty"`
 	}
 
 	Sock struct {
-		ID          string   `json:"id"`
-		Name        string   `json:"name"`
-		Description string   `json:"description"`
-		ImageURL    []string `json:"imageUrl"`
-		Price       float64  `json:"price"`
-		Count       int      `json:"count"`
-		Tags        []string `json:"tag"`
+		ID          uuid.UUID `json:"id"`
+		Name        string    `json:"name"`
+		Description string    `json:"description"`
+		ImageURL    []string  `json:"imageUrl"`
+		Price       float64   `json:"price"`
+		Count       int       `json:"count"`
+		Tags        []string  `json:"tag"`
 	}
 
 	ListSockParams struct {
@@ -40,6 +44,12 @@ type (
 		Size int `json:"size"`
 	}
 
+	TagsResponse struct {
+		Tags []string `json:"tags"`
+	}
+)
+
+type (
 	CatalogueService interface {
 		ListSocks(ctx context.Context, req *ListSockParams) (*ListSockResponse, error)
 	}

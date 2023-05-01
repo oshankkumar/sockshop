@@ -11,31 +11,22 @@ type Error struct {
 	Err     error  `json:"-"`
 }
 
-type HTTPHandler interface {
+type Handler interface {
 	ServeHTTP(w http.ResponseWriter, r *http.Request) *Error
 }
 
-type HTTPHandlerFunc func(w http.ResponseWriter, r *http.Request) *Error
+type HandlerFunc func(w http.ResponseWriter, r *http.Request) *Error
 
-func (h HTTPHandlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) *Error {
+func (h HandlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) *Error {
 	return h(w, r)
 }
 
-func ToStdHandler(h HTTPHandler) http.Handler {
+func ToStdHandler(h Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if apiErr := h.ServeHTTP(w, r); apiErr != nil {
 			RespondJSON(w, apiErr, apiErr.Code)
 		}
 	})
-}
-
-type Route interface {
-	// Handler returns the http handler.
-	Handler() HTTPHandler
-	// Method returns the http method that the route responds to.
-	Method() string
-	// Path returns the subpath where the route responds to.
-	Path() string
 }
 
 func RespondJSON(w http.ResponseWriter, v interface{}, status int) {

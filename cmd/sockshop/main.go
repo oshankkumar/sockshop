@@ -9,23 +9,27 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/oshankkumar/sockshop/api"
 	"github.com/oshankkumar/sockshop/internal/app"
-	"github.com/oshankkumar/sockshop/internal/pkg/mysql"
+	"github.com/oshankkumar/sockshop/internal/db/mysql"
 	"github.com/oshankkumar/sockshop/transport/http"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
 type AppConfig struct {
 	MySQLConnString string
+	ImagePath       string
+	Domain          string
 }
 
 func main() {
 	var conf AppConfig
 	flag.StringVar(&conf.MySQLConnString, "mysql-conn-str", "admin:password@tcp(mysql:3306)/socksdb", "MySQL connection string")
+	flag.StringVar(&conf.ImagePath, "image-path", "assets/images", "Image path")
+	flag.StringVar(&conf.Domain, "link-domain", "http://127.0.0.1", "HATEAOS link domain")
 	flag.Parse()
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -56,11 +60,12 @@ func run(ctx context.Context, conf AppConfig) error {
 
 	log.Println("starting app http server :9090")
 
-	server := http.NewServer(
+	server := http.NewAPIServer(
 		catalogueSvc,
 		logger,
 		doHealthCheck(db),
 		sockStore,
+		conf.ImagePath,
 	)
 
 	return server.Start(ctx, ":9090")

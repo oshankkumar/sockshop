@@ -12,35 +12,39 @@ import (
 	"go.uber.org/zap"
 )
 
-type Server struct {
+type APIServer struct {
 	sockLister    sockLister
-	router        *mux.Router
-	logger        *zap.Logger
 	healthChecker healthChecker
 	sockStore     domain.SockStore
+	imagePath     string
+	logger        *zap.Logger
+
+	router *mux.Router
 }
 
-func NewServer(
+func NewAPIServer(
 	sockLister sockLister,
 	logger *zap.Logger,
 	healthChecker healthChecker,
 	sockStore domain.SockStore,
-) *Server {
-	s := &Server{
+	imagePath string,
+) *APIServer {
+	s := &APIServer{
 		sockLister:    sockLister,
 		router:        mux.NewRouter(),
 		logger:        logger,
 		healthChecker: healthChecker,
 		sockStore:     sockStore,
+		imagePath:     imagePath,
 	}
+
+	s.initRoutes()
 	return s
 }
 
-func (s *Server) Start(ctx context.Context, addr string) error {
+func (s *APIServer) Start(ctx context.Context, addr string) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-
-	s.initRoutes()
 
 	srv := &http.Server{
 		Addr:    addr,
@@ -75,20 +79,26 @@ func (s *Server) Start(ctx context.Context, addr string) error {
 	}
 }
 
-func (s *Server) initRoutes() {
+func (s *APIServer) initRoutes() {
 	routes := []struct {
 		method  string
 		path    string
-		handler HTTPHandler
+		handler Handler
 	}{
 		{http.MethodGet, "/health", HealthCheckHandler(s.healthChecker)},
 		{http.MethodGet, "/catalogue", ListSocksHandler(s.sockLister)},
 		{http.MethodGet, "/catalogue/size", CountTagsHandler(s.sockStore)},
-		{http.MethodGet, "/catalogue/{id}", GetSockHandler(s.sockStore)},
+		{http.MethodGet, "/catalogue/{id}", GetSocksHandler(s.sockStore)},
+		{http.MethodGet, "/tags", TagsHandler(s.sockStore)},
 	}
 
 	for _, route := range routes {
 		h := WithLogging(s.logger)(route.handler)
 		s.router.Methods(route.method).Path(route.path).Handler(ToStdHandler(h))
 	}
+
+	imgServer := http.FileServer(http.Dir(s.imagePath))
+	imgServer = http.StripPrefix("/catalogue/images/", imgServer)
+
+	s.router.Methods(http.MethodGet).PathPrefix("/catalogue/images/").Handler(imgServer)
 }

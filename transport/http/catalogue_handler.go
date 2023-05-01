@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -31,7 +32,11 @@ type sockGetter interface {
 	Get(ctx context.Context, id string) (domain.Sock, error)
 }
 
-func HealthCheckHandler(h healthChecker) HTTPHandlerFunc {
+type tagsGetter interface {
+	Tags(ctx context.Context) ([]string, error)
+}
+
+func HealthCheckHandler(h healthChecker) HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *Error {
 		hh, err := h.CheckHealth(r.Context())
 		if err != nil {
@@ -43,8 +48,8 @@ func HealthCheckHandler(h healthChecker) HTTPHandlerFunc {
 	}
 }
 
-func ListSocksHandler(sockLister sockLister) HTTPHandlerFunc {
-	return HTTPHandlerFunc(func(w http.ResponseWriter, r *http.Request) *Error {
+func ListSocksHandler(sockLister sockLister) HandlerFunc {
+	return HandlerFunc(func(w http.ResponseWriter, r *http.Request) *Error {
 		resp, err := sockLister.ListSocks(r.Context(), decodeListReq(r))
 		if err != nil {
 			return &Error{http.StatusInternalServerError, "failed to list socks", err}
@@ -55,7 +60,7 @@ func ListSocksHandler(sockLister sockLister) HTTPHandlerFunc {
 	})
 }
 
-func CountTagsHandler(tagCounter tagCounter) HTTPHandlerFunc {
+func CountTagsHandler(tagCounter tagCounter) HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *Error {
 		var tags []string
 		if tagsval := r.FormValue("tags"); tagsval != "" {
@@ -72,12 +77,16 @@ func CountTagsHandler(tagCounter tagCounter) HTTPHandlerFunc {
 	}
 }
 
-func GetSockHandler(sockGetter sockGetter) HTTPHandlerFunc {
+func GetSocksHandler(sockGetter sockGetter) HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *Error {
 		id := mux.Vars(r)["id"]
 
 		sock, err := sockGetter.Get(r.Context(), id)
-		if err != nil {
+
+		switch {
+		case errors.Is(err, domain.ErrNotFound):
+			return &Error{http.StatusNotFound, "failed to get sock", err}
+		case err != nil:
 			return &Error{http.StatusInternalServerError, "failed to get sock", err}
 		}
 
@@ -96,6 +105,18 @@ func GetSockHandler(sockGetter sockGetter) HTTPHandlerFunc {
 			Tags:        tags,
 		}, http.StatusOK)
 
+		return nil
+	}
+}
+
+func TagsHandler(t tagsGetter) HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) *Error {
+		tags, err := t.Tags(r.Context())
+		if err != nil {
+			return &Error{http.StatusInternalServerError, "failed to get tags", err}
+		}
+
+		RespondJSON(w, api.TagsResponse{Tags: tags}, http.StatusOK)
 		return nil
 	}
 }
