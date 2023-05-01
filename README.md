@@ -2,6 +2,7 @@
 ![go build](https://github.com/oshankkumar/sockshop/actions/workflows/go.yml/badge.svg)
 
 A Golang demo web application. It is intended to aid the demonstration of how to write a web application in Golang using SOLID principles.
+This is a re-write of https://github.dev/microservices-demo/ to demonstrate how we can use write a Go web app following SOLID principles.
 
 ## Overview
 
