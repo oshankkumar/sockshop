@@ -13,13 +13,19 @@ This is basic layout for Go web app.
 `api` package should only contain the request and response schema. It should not have any application logic or dependency. Additionally It can also contain interface definitions. Which can use the defined request and respose schema as input/output parmas in the interface methods.
 It should not contain any concrete type which implements those interface. This will provide an abstraction to your business logic.
 
+See [/api](./api/) package for example.
+
 ### `/cmd`
 
 This will contain the main package(s) for this project. The directory name for each application in `cmd` should match the name of executable you want. You should not put a lot of code in main package. You should only initialize the app dependencies in here and inject it to higher level modules/components.
 
+See [/cmd](./cmd/) package for example.
+
 ### `/domain`
 `domain` package should only contain your application domain related information. It should define the application domain types and related interfaces. You should not put any concreate implementaion in here. This is an abstraction to your application domain. 
 The actual implementation could be catered using a database or a third party API. Application domain should be independent of the actual concrete implementation.
+
+See [/domain](./domain/) package for example.
 
 ### `/internal`
 
@@ -29,11 +35,12 @@ It will contain concrete types which can implement intefaces defined in `/api` p
 
 You can define packages like `internal/db`, `internal/<api-client> ` ..etc Which will define concrete types implementing interfaces defined in `/domain` package. 
 
+See [/internal](./internal/) package for example. 
+
 ### `/transport`
 
 This package should contain the application transport layer (eg ..http,grpc ..etc). You can define your application http Handlers in `/transport/http` package. 
 
-
-
+See [/transport/http](./transport/http) package for example. 
 
 
