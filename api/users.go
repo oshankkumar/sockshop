@@ -2,14 +2,8 @@ package api
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
-)
-
-var (
-	ErrUnauthorized = errors.New("unauthorized")
-	ErrNotFound     = errors.New("user not found")
 )
 
 type User struct {

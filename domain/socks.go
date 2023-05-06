@@ -2,12 +2,9 @@ package domain
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
 )
-
-var ErrNotFound = errors.New("not found")
 
 type Tag struct {
 	ID   string

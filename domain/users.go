@@ -2,23 +2,9 @@ package domain
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
 )
-
-var (
-	ErrDuplicateUserEntry = errors.New("duplicate entry for user")
-)
-
-type DuplicateUserEntryError struct {
-	Entity string
-	Err    error
-}
-
-func (d DuplicateUserEntryError) Error() string { return d.Entity + ":" + d.Err.Error() }
-
-func (d DuplicateUserEntryError) Unwrap() error { return d.Err }
 
 type User struct {
 	ID         uuid.UUID `db:"id"`

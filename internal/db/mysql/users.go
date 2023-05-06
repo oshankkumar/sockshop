@@ -151,7 +151,7 @@ func (u *UserStore) CreateUser(ctx context.Context, user *domain.User) error {
 
 	var mysqlErr *mysql.MySQLError
 	if errors.As(err, &mysqlErr) && mysqlErr.Number == MySQLErrCodeDupe {
-		return domain.DuplicateUserEntryError{Entity: "user", Err: err}
+		return domain.DuplicateEntryError{Entity: "user", Err: err}
 	}
 
 	if err != nil {
@@ -212,7 +212,7 @@ func (u *UserStore) CreateCard(ctx context.Context, card *domain.Card, userID st
 
 	var mysqlErr *mysql.MySQLError
 	if errors.As(err, &mysqlErr) && mysqlErr.Number == MySQLErrCodeDupe {
-		return domain.DuplicateUserEntryError{Entity: "card", Err: err}
+		return domain.DuplicateEntryError{Entity: "card", Err: err}
 	}
 
 	if err != nil {

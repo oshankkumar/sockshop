@@ -83,7 +83,7 @@ func RegisterUserHandler(ur userRegisterationService) HandlerFunc {
 		id, err := ur.Register(r.Context(), user)
 
 		switch {
-		case errors.As(err, &domain.DuplicateUserEntryError{}):
+		case errors.As(err, &domain.DuplicateEntryError{}):
 			return &Error{http.StatusConflict, "username or email already exists", err}
 		case err != nil:
 			return &Error{Code: http.StatusInternalServerError, Message: "user registeration failed", Err: err}
@@ -214,7 +214,7 @@ func CreateCardHandler(cc cardCreator) HandlerFunc {
 		id, err := cc.CreateCard(r.Context(), card, userID)
 
 		switch {
-		case errors.As(err, &domain.DuplicateUserEntryError{}):
+		case errors.As(err, &domain.DuplicateEntryError{}):
 			return &Error{http.StatusConflict, "card already registered", err}
 		case err != nil:
 			return &Error{http.StatusInternalServerError, "adding card failed", err}
