@@ -3,14 +3,21 @@ package mysql
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
-	"github.com/jmoiron/sqlx"
 
 	"github.com/oshankkumar/sockshop/domain"
 	"github.com/oshankkumar/sockshop/internal/db"
 )
+
+const MySQLErrCodeDupe = 1062
+
+func NewUserStore(db db.DBTx) *UserStore {
+	return &UserStore{db: db}
+}
 
 type UserStore struct {
 	db db.DBTx
@@ -21,7 +28,7 @@ func (u *UserStore) GetUserByName(ctx context.Context, uname string) (domain.Use
 		"FROM customer WHERE username=?;"
 
 	var user domain.User
-	if err := sqlx.GetContext(ctx, u.db, &user, query, uname); err != nil {
+	if err := GetContext(ctx, u.db, &user, query, uname); err != nil {
 		return user, fmt.Errorf("UserStore.GetUserByName(%s): %w", uname, err)
 	}
 
@@ -33,7 +40,7 @@ func (u *UserStore) GetUser(ctx context.Context, id string) (domain.User, error)
 		"FROM customer WHERE customer.id=?;"
 
 	var user domain.User
-	if err := sqlx.GetContext(ctx, u.db, &user, query, id); err != nil {
+	if err := GetContext(ctx, u.db, &user, query, id); err != nil {
 		return user, fmt.Errorf("UserStore.GetUser(%s): %w", id, err)
 	}
 
@@ -44,14 +51,14 @@ func (u *UserStore) addAttributes(ctx context.Context, user *domain.User) error 
 	query := "SELECT address_id FROM customer_address WHERE customer_id=?;"
 
 	var addrs []string
-	if err := sqlx.SelectContext(ctx, u.db, &addrs, query, user.ID); err != nil {
+	if err := SelectContext(ctx, u.db, &addrs, query, user.ID); err != nil {
 		return fmt.Errorf("UserStore.addAttributes(%s): %w", user.ID, err)
 	}
 
-	query = "SELECT card.id FROM customer_card WHERE customer_id=?;"
+	query = "SELECT card_id FROM customer_card WHERE customer_id=?;"
 
 	var cards []string
-	if err := sqlx.SelectContext(ctx, u.db, &cards, query, user.ID); err != nil {
+	if err := SelectContext(ctx, u.db, &cards, query, user.ID); err != nil {
 		return fmt.Errorf("UserStore.addAttributes(%s): %w", user.ID, err)
 	}
 
@@ -66,7 +73,7 @@ func (u *UserStore) GetUsers(ctx context.Context) ([]domain.User, error) {
 		"FROM customer;"
 
 	var users []domain.User
-	if err := sqlx.SelectContext(ctx, u.db, &users, query); err != nil {
+	if err := SelectContext(ctx, u.db, &users, query); err != nil {
 		return users, fmt.Errorf("UserStore.GetUser(): %w", err)
 	}
 
@@ -83,18 +90,20 @@ func (u *UserStore) GetAddress(ctx context.Context, id string) (domain.Address, 
 	query := "SELECT id, street, number, country, city, postcode FROM address WHERE id=?;"
 
 	var addr domain.Address
-	if err := sqlx.GetContext(ctx, u.db, &addr, query, id); err != nil {
+	if err := GetContext(ctx, u.db, &addr, query, id); err != nil {
 		return addr, fmt.Errorf("UserStore.GetAddress(%s): %w", id, err)
 	}
 
 	return addr, nil
 }
 
-func (u *UserStore) GetAddresses(ctx context.Context) ([]domain.Address, error) {
-	query := "SELECT id, street, number, country, city, postcode FROM address;"
+func (u *UserStore) GetUserAddresses(ctx context.Context, userID string) ([]domain.Address, error) {
+	query := "SELECT a.id, a.street, a.number, a.country, a.city, a.postcode " +
+		"FROM customer_address ca JOIN address a ON ca.address_id=a.id " +
+		"WHERE ca.customer_id=?;"
 
 	var addrs []domain.Address
-	if err := sqlx.SelectContext(ctx, u.db, &addrs, query); err != nil {
+	if err := SelectContext(ctx, u.db, &addrs, query, userID); err != nil {
 		return addrs, fmt.Errorf("UserStore.GetAddresses(): %w", err)
 	}
 
@@ -105,18 +114,20 @@ func (u *UserStore) GetCard(ctx context.Context, id string) (domain.Card, error)
 	query := "SELECT id, long_num, expires, ccv FROM card WHERE id=?;"
 
 	var card domain.Card
-	if err := sqlx.GetContext(ctx, u.db, &card, query, id); err != nil {
+	if err := GetContext(ctx, u.db, &card, query, id); err != nil {
 		return card, fmt.Errorf("UserStore.GetCard(%s): %w", id, err)
 	}
 
 	return card, nil
 }
 
-func (u *UserStore) GetCards(ctx context.Context) ([]domain.Card, error) {
-	query := "SELECT id, long_num, expires, ccv FROM card;"
+func (u *UserStore) GetUserCards(ctx context.Context, userID string) ([]domain.Card, error) {
+	query := "SELECT c.id, c.long_num, c.expires, c.ccv " +
+		"FROM card c JOIN customer_card cc ON c.id=cc.card_id " +
+		"WHERE cc.customer_id=?;"
 
 	var cards []domain.Card
-	if err := sqlx.SelectContext(ctx, u.db, &cards, query); err != nil {
+	if err := SelectContext(ctx, u.db, &cards, query, userID); err != nil {
 		return cards, fmt.Errorf("UserStore.GetCards(): %w", err)
 	}
 
@@ -137,6 +148,11 @@ func (u *UserStore) CreateUser(ctx context.Context, user *domain.User) error {
 		user.Password,
 		user.Salt,
 	)
+
+	var mysqlErr *mysql.MySQLError
+	if errors.As(err, &mysqlErr) && mysqlErr.Number == MySQLErrCodeDupe {
+		return domain.DuplicateUserEntryError{Entity: "user", Err: err}
+	}
 
 	if err != nil {
 		return fmt.Errorf("UserStore.CreateUser(%s): %w", user.Username, err)
@@ -193,14 +209,20 @@ func (u *UserStore) CreateCard(ctx context.Context, card *domain.Card, userID st
 		card.Expires,
 		card.CCV,
 	)
+
+	var mysqlErr *mysql.MySQLError
+	if errors.As(err, &mysqlErr) && mysqlErr.Number == MySQLErrCodeDupe {
+		return domain.DuplicateUserEntryError{Entity: "card", Err: err}
+	}
+
 	if err != nil {
-		return fmt.Errorf("UserStore.CreateCard(userID=%s): %w", userID, err)
+		return fmt.Errorf("UserStore.CreateCard(userID=%s): txn.ExecContext(card): %w", userID, err)
 	}
 
 	query = "INSERT INTO customer_card(customer_id, card_id) VALUES (?, ?)"
 
 	if _, err = tx.ExecContext(ctx, query, userID, card.ID); err != nil {
-		return fmt.Errorf("UserStore.CreateCard(userID=%s): %w", userID, err)
+		return fmt.Errorf("UserStore.CreateCard(userID=%s): txn.ExecContext(customer_card): %w", userID, err)
 	}
 
 	return tx.Commit()

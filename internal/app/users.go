@@ -14,6 +14,10 @@ import (
 	"github.com/oshankkumar/sockshop/domain"
 )
 
+func NewUserService(s domain.UserStore, domain string) *UserService {
+	return &UserService{userStore: s, domain: domain}
+}
+
 type UserService struct {
 	userStore domain.UserStore
 	domain    string
@@ -61,6 +65,169 @@ func (u *UserService) Register(ctx context.Context, user api.User) (uuid.UUID, e
 	}
 
 	return userM.ID, nil
+}
+
+func (u *UserService) GetUser(ctx context.Context, id string) (*api.User, error) {
+	user, err := u.userStore.GetUser(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("UserService.GetUser(id=%s): %w", id, err)
+	}
+
+	usr := &api.User{
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Username:  user.Username,
+		Email:     user.Email,
+		ID:        user.ID,
+		Links:     make(api.Links),
+	}
+
+	usr.Links.AddCustomer(u.domain, usr.ID.String())
+
+	return usr, nil
+}
+
+func (u *UserService) GetUsers(ctx context.Context) ([]api.User, error) {
+	users, err := u.userStore.GetUsers(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("UserService.GetUser: %w", err)
+	}
+
+	var usrs []api.User
+
+	for _, user := range users {
+		usr := &api.User{
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+			Username:  user.Username,
+			Email:     user.Email,
+			ID:        user.ID,
+			Links:     make(api.Links),
+		}
+
+		usr.Links.AddCustomer(u.domain, usr.ID.String())
+		users = append(users, user)
+	}
+
+	return usrs, nil
+}
+
+func (u *UserService) CreateAddress(ctx context.Context, addr api.Address, userID string) (uuid.UUID, error) {
+	addrM := &domain.Address{
+		Street:   addr.Street,
+		Number:   addr.Number,
+		Country:  addr.Country,
+		City:     addr.City,
+		PostCode: addr.PostCode,
+	}
+
+	if err := u.userStore.CreateAddress(ctx, addrM, userID); err != nil {
+		return uuid.UUID{}, fmt.Errorf("UserService.CreateAddress(userID=%s): %w", userID, err)
+	}
+
+	return addrM.ID, nil
+}
+
+func (u *UserService) CreateCard(ctx context.Context, card api.Card, userID string) (uuid.UUID, error) {
+	cardM := &domain.Card{
+		LongNum: card.LongNum,
+		Expires: card.Expires,
+		CCV:     card.CCV,
+	}
+
+	if err := u.userStore.CreateCard(ctx, cardM, userID); err != nil {
+		return uuid.UUID{}, fmt.Errorf("UserService.CreateCard(userID=%s): %w", userID, err)
+	}
+
+	return cardM.ID, nil
+}
+
+func (u *UserService) GetAddresses(ctx context.Context, id string) (*api.Address, error) {
+	addrM, err := u.userStore.GetAddress(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("UserService.GetAddresses(id=%s): %w", id, err)
+	}
+
+	addr := &api.Address{
+		ID:       addrM.ID,
+		Street:   addrM.Street,
+		Number:   addrM.Number,
+		Country:  addrM.Country,
+		City:     addrM.City,
+		PostCode: addrM.PostCode,
+		Links:    make(api.Links),
+	}
+	addr.AddLinks(u.domain)
+
+	return addr, nil
+}
+
+func (u *UserService) GetCard(ctx context.Context, id string) (*api.Card, error) {
+	cardM, err := u.userStore.GetCard(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("UserService.GetCard(id=%s): %w", id, err)
+	}
+
+	card := &api.Card{
+		ID:      cardM.ID,
+		LongNum: cardM.LongNum,
+		Expires: cardM.Expires,
+		CCV:     cardM.CCV,
+		Links:   make(api.Links),
+	}
+	card.MaskCC()
+	card.AddLinks(u.domain)
+
+	return card, nil
+}
+
+func (u *UserService) GetUserCards(ctx context.Context, userID string) ([]api.Card, error) {
+	cardsM, err := u.userStore.GetUserCards(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("UserService.GetUserCards(userID=%s): %w", userID, err)
+	}
+
+	var cards []api.Card
+	for _, c := range cardsM {
+		card := api.Card{
+			ID:      c.ID,
+			LongNum: c.LongNum,
+			Expires: c.Expires,
+			CCV:     c.CCV,
+			Links:   make(api.Links),
+		}
+		card.MaskCC()
+		card.AddLinks(u.domain)
+
+		cards = append(cards, card)
+	}
+
+	return cards, nil
+}
+
+func (u *UserService) GetUserAddresses(ctx context.Context, userID string) ([]api.Address, error) {
+	addrsM, err := u.userStore.GetUserAddresses(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("UserService.GetUserAddresses(userID=%s): %w", userID, err)
+	}
+
+	var addresses []api.Address
+	for _, adr := range addrsM {
+		addr := api.Address{
+			ID:       adr.ID,
+			Street:   adr.Street,
+			Number:   adr.Number,
+			Country:  adr.Country,
+			City:     adr.City,
+			PostCode: adr.PostCode,
+			Links:    make(api.Links),
+		}
+		addr.AddLinks(u.domain)
+
+		addresses = append(addresses, addr)
+	}
+
+	return addresses, nil
 }
 
 func calculatePassHash(pass, salt string) string {

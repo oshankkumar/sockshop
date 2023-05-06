@@ -29,7 +29,7 @@ func main() {
 	var conf AppConfig
 	flag.StringVar(&conf.MySQLConnString, "mysql-conn-str", "admin:password@tcp(mysql:3306)/socksdb", "MySQL connection string")
 	flag.StringVar(&conf.ImagePath, "image-path", "assets/images", "Image path")
-	flag.StringVar(&conf.Domain, "link-domain", "http://127.0.0.1", "HATEAOS link domain")
+	flag.StringVar(&conf.Domain, "link-domain", "127.0.0.1:9090", "HATEAOS link domain")
 	flag.Parse()
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -56,17 +56,19 @@ func run(ctx context.Context, conf AppConfig) error {
 	}
 
 	sockStore := mysql.NewSockStore(db)
-	catalogueSvc := &app.CatalogueService{SockStore: sockStore}
+	catalogueSvc := app.NewCatalogueService(sockStore)
+	userService := app.NewUserService(mysql.NewUserStore(db), conf.Domain)
 
 	log.Println("starting app http server :9090")
 
-	server := http.NewAPIServer(
-		catalogueSvc,
-		logger,
-		doHealthCheck(db),
-		sockStore,
-		conf.ImagePath,
-	)
+	server := &http.APIServer{
+		UserService:   userService,
+		HealthChecker: doHealthCheck(db),
+		SockLister:    catalogueSvc,
+		SockStore:     sockStore,
+		ImagePath:     conf.ImagePath,
+		Logger:        logger,
+	}
 
 	return server.Start(ctx, ":9090")
 }

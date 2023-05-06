@@ -9,14 +9,18 @@ import (
 	"github.com/oshankkumar/sockshop/domain"
 )
 
+func NewCatalogueService(s domain.SockStore) *CatalogueService {
+	return &CatalogueService{sockStore: s}
+}
+
 type CatalogueService struct {
-	SockStore domain.SockStore
+	sockStore domain.SockStore
 }
 
 func (s *CatalogueService) ListSocks(ctx context.Context, req *api.ListSockParams) (*api.ListSockResponse, error) {
 	offset := req.PageSize * (req.PageNum - 1)
 
-	socks, err := s.SockStore.List(ctx, req.Tags, req.Order, req.PageSize, offset)
+	socks, err := s.sockStore.List(ctx, req.Tags, req.Order, req.PageSize, offset)
 	if err != nil {
 		return nil, fmt.Errorf("CatalogueService.ListSocks: %w", err)
 	}

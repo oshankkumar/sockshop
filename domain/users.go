@@ -2,9 +2,23 @@ package domain
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 )
+
+var (
+	ErrDuplicateUserEntry = errors.New("duplicate entry for user")
+)
+
+type DuplicateUserEntryError struct {
+	Entity string
+	Err    error
+}
+
+func (d DuplicateUserEntryError) Error() string { return d.Entity + ":" + d.Err.Error() }
+
+func (d DuplicateUserEntryError) Unwrap() error { return d.Err }
 
 type User struct {
 	ID         uuid.UUID `db:"id"`
@@ -39,9 +53,9 @@ type UserStoreReader interface {
 	GetUser(ctx context.Context, id string) (User, error)
 	GetUsers(ctx context.Context) ([]User, error)
 	GetAddress(ctx context.Context, id string) (Address, error)
-	GetAddresses(ctx context.Context) ([]Address, error)
+	GetUserAddresses(ctx context.Context, userID string) ([]Address, error)
 	GetCard(ctx context.Context, id string) (Card, error)
-	GetCards(ctx context.Context) ([]Card, error)
+	GetUserCards(ctx context.Context, userID string) ([]Card, error)
 }
 
 type UserStoreWriter interface {

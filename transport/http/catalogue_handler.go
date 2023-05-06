@@ -12,7 +12,7 @@ import (
 	"github.com/oshankkumar/sockshop/domain"
 )
 
-type healthChecker interface {
+type HealthChecker interface {
 	CheckHealth(ctx context.Context) ([]api.Health, error)
 }
 
@@ -20,7 +20,7 @@ type HealthCheckerFunc func(ctx context.Context) ([]api.Health, error)
 
 func (h HealthCheckerFunc) CheckHealth(ctx context.Context) ([]api.Health, error) { return h(ctx) }
 
-type sockLister interface {
+type SockLister interface {
 	ListSocks(ctx context.Context, req *api.ListSockParams) (*api.ListSockResponse, error)
 }
 
@@ -36,7 +36,7 @@ type tagsGetter interface {
 	Tags(ctx context.Context) ([]string, error)
 }
 
-func HealthCheckHandler(h healthChecker) HandlerFunc {
+func HealthCheckHandler(h HealthChecker) HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *Error {
 		hh, err := h.CheckHealth(r.Context())
 		if err != nil {
@@ -48,7 +48,7 @@ func HealthCheckHandler(h healthChecker) HandlerFunc {
 	}
 }
 
-func ListSocksHandler(sockLister sockLister) HandlerFunc {
+func ListSocksHandler(sockLister SockLister) HandlerFunc {
 	return HandlerFunc(func(w http.ResponseWriter, r *http.Request) *Error {
 		resp, err := sockLister.ListSocks(r.Context(), decodeListReq(r))
 		if err != nil {

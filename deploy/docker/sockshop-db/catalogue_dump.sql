@@ -81,17 +81,20 @@ CREATE TABLE IF NOT EXISTS customer (
 	id varchar(40) NOT NULL, 
 	first_name varchar(20), 
 	last_name varchar(20), 
-	email varchar(20), 
+	email varchar(40), 
 	username varchar(20), 
-	password varchar(20), 
-	salt varchar(20),
-	PRIMARY KEY(id)
+	password varchar(40), 
+	salt varchar(40),
+	PRIMARY KEY(id),
+	UNIQUE (email)
 );
+
+CREATE UNIQUE INDEX customer_username_uq ON customer (username);
 
 CREATE TABLE IF NOT EXISTS address (
 	id varchar(40) NOT NULL, 
-	street varchar(20), 
-	number varchar(20), 
+	street varchar(40), 
+	number varchar(40), 
 	country varchar(20), 
 	city varchar(20), 
 	postcode varchar(20), 
@@ -104,7 +107,8 @@ CREATE TABLE IF NOT EXISTS card (
 	long_num varchar(60), 
 	expires varchar(20), 
 	ccv varchar(20), 
-	PRIMARY KEY(id)
+	PRIMARY KEY(id),
+	UNIQUE (long_num)
 );
 
 CREATE TABLE IF NOT EXISTS customer_address (
@@ -116,6 +120,8 @@ CREATE TABLE IF NOT EXISTS customer_address (
 		REFERENCES address(id)
 );
 
+CREATE INDEX customer_address_customer_id ON customer_address (customer_id);
+
 CREATE TABLE IF NOT EXISTS customer_card (
 	customer_id varchar(40), 
 	card_id varchar(40), 
@@ -124,3 +130,5 @@ CREATE TABLE IF NOT EXISTS customer_card (
 	FOREIGN KEY(card_id)
 		REFERENCES card(id)
 );
+
+CREATE INDEX customer_card_customer_id ON customer_card (customer_id);
