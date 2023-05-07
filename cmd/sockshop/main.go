@@ -57,7 +57,9 @@ func run(ctx context.Context, conf AppConfig) error {
 
 	sockStore := mysql.NewSockStore(db)
 	catalogueSvc := app.NewCatalogueService(sockStore)
-	userService := app.NewUserService(mysql.NewUserStore(db), conf.Domain)
+
+	userStore := mysql.NewUserStore(db)
+	userService := app.NewUserService(userStore, conf.Domain)
 
 	log.Println("starting app http server :9090")
 
