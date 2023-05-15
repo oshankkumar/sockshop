@@ -1,5 +1,7 @@
 # Sock Shop
-![go build](https://github.com/oshankkumar/sockshop/actions/workflows/go.yml/badge.svg)
+![go build](https://github.com/oshankkumar/sockshop/actions/workflows/go.yml/badge.svg) 
+[![Go Report Card](https://goreportcard.com/badge/github.com/oshankkumar/sockshop)](https://goreportcard.com/report/github.com/oshankkumar/sockshop)
+
 
 A Golang demo web application. It is intended to aid the demonstration of how to write a web application in Golang using SOLID principles.
 This is a re-write of https://github.dev/microservices-demo/ to demonstrate how we can use write a Go web app following SOLID principles.
