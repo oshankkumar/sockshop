@@ -56,16 +56,19 @@ func run(ctx context.Context, conf AppConfig) error {
 		return fmt.Errorf("db ping: %w", err)
 	}
 
-	sockStore := mysql.NewSockStore(db)
-	catalogueSvc := app.NewCatalogueService(sockStore)
+	var catalogueRouter http.Router
+	{
+		sockStore := mysql.NewSockStore(db)
+		catalogueSvc := app.NewCatalogueService(sockStore)
+		catalogueRouter = &http.CatalogueRouter{SockLister: catalogueSvc, SockStore: sockStore}
+	}
 
-	userStore := mysql.NewUserStore(db)
-	userService := app.NewUserService(userStore, conf.Domain)
-
-	log.Println("starting app http server :9090")
-
-	userRouter := &http.UserRouter{UserService: userService}
-	catalogueRouter := &http.CatalogueRouter{SockLister: catalogueSvc, SockStore: sockStore}
+	var userRouter http.Router
+	{
+		userStore := mysql.NewUserStore(db)
+		userService := app.NewUserService(userStore, conf.Domain)
+		userRouter = &http.UserRouter{UserService: userService}
+	}
 
 	apiServer := &http.APIServer{
 		ImagePath:     conf.ImagePath,
@@ -81,6 +84,8 @@ func run(ctx context.Context, conf AppConfig) error {
 func startHTTPServer(ctx context.Context, addr string, handler gohttp.Handler, logger *zap.Logger) error {
 	srv := &gohttp.Server{Addr: ":9090", Handler: handler}
 	errc := make(chan error, 1)
+
+	logger.Info("starting app http server :9090")
 
 	go func(errc chan<- error) {
 		if err := srv.ListenAndServe(); err != nil && err != gohttp.ErrServerClosed {
