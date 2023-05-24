@@ -67,7 +67,12 @@ func run(ctx context.Context, conf AppConfig) error {
 	userRouter := &http.UserRouter{UserService: userService}
 	catalogueRouter := &http.CatalogueRouter{SockLister: catalogueSvc, SockStore: sockStore}
 
-	apiServer := &http.APIServer{Logger: logger, ImagePath: conf.ImagePath, HealthChecker: doHealthCheck(db)}
+	apiServer := &http.APIServer{
+		ImagePath:     conf.ImagePath,
+		HealthChecker: doHealthCheck(db),
+		Middleware:    http.ChainMiddleware(http.WithLogging(logger)),
+	}
+
 	serveMux := apiServer.CreateMux(userRouter, catalogueRouter)
 
 	return startHTTPServer(ctx, ":9090", serveMux, logger)

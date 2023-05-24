@@ -6,13 +6,12 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/oshankkumar/sockshop/api"
-	"go.uber.org/zap"
 )
 
 type APIServer struct {
 	ImagePath     string
-	Logger        *zap.Logger
 	HealthChecker HealthChecker
+	Middleware    Middleware
 }
 
 func (s *APIServer) CreateMux(routers ...Router) *mux.Router {
@@ -20,7 +19,7 @@ func (s *APIServer) CreateMux(routers ...Router) *mux.Router {
 
 	for _, router := range routers {
 		for _, route := range router.Routes() {
-			h := WithLogging(s.Logger)(route.Handler)
+			h := s.Middleware(route.Handler)
 			serveMux.Methods(route.Method).Path(route.Path).Handler(ToStdHandler(h))
 		}
 	}
