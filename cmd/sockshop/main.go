@@ -35,9 +35,11 @@ func main() {
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
+
 	if err := run(ctx, conf); err != nil {
 		log.Fatalf("failed running app: %v", err)
 	}
+
 	log.Println("app closed")
 }
 
