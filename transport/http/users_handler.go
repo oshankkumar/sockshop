@@ -13,6 +13,24 @@ import (
 	"github.com/oshankkumar/sockshop/domain"
 )
 
+type UserRouter struct {
+	UserService api.UserService
+}
+
+func (u *UserRouter) Routes() []Route {
+	return []Route{
+		{http.MethodPost, "/login", LoginHandler(u.UserService)},
+		{http.MethodPost, "/customers", RegisterUserHandler(u.UserService)},
+		{http.MethodGet, "/customers/{id}", GetUserHandler(u.UserService)},
+		{http.MethodGet, "/cards/{id}", GetCardHandler(u.UserService)},
+		{http.MethodGet, "/addresses/{id}", GetAddressHandler(u.UserService)},
+		{http.MethodGet, "/customers/{id}/cards", GetUserCardsHandler(u.UserService)},
+		{http.MethodGet, "/customers/{id}/addresses", GetUserAddressesHandler(u.UserService)},
+		{http.MethodPost, "/customers/{id}/cards", CreateCardHandler(u.UserService)},
+		{http.MethodPost, "/customers/{id}/addresses", CreateAddressHandler(u.UserService)},
+	}
+}
+
 type loginService interface {
 	Login(ctx context.Context, username, password string) (*api.User, error)
 }

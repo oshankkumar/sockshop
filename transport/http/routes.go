@@ -29,6 +29,16 @@ func ToStdHandler(h Handler) http.Handler {
 	})
 }
 
+type Router interface {
+	Routes() []Route
+}
+
+type Route struct {
+	Method  string
+	Path    string
+	Handler Handler
+}
+
 func RespondJSON(w http.ResponseWriter, v interface{}, status int) {
 	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 	w.WriteHeader(status)

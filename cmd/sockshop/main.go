@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	gohttp "net/http"
 	"os/signal"
 	"syscall"
 	"time"
@@ -63,16 +64,43 @@ func run(ctx context.Context, conf AppConfig) error {
 
 	log.Println("starting app http server :9090")
 
-	server := &http.APIServer{
-		UserService:   userService,
-		HealthChecker: doHealthCheck(db),
-		SockLister:    catalogueSvc,
-		SockStore:     sockStore,
-		ImagePath:     conf.ImagePath,
-		Logger:        logger,
+	userRouter := &http.UserRouter{UserService: userService}
+	catalogueRouter := &http.CatalogueRouter{SockLister: catalogueSvc, SockStore: sockStore}
+
+	apiServer := &http.APIServer{Logger: logger, ImagePath: conf.ImagePath, HealthChecker: doHealthCheck(db)}
+	serveMux := apiServer.CreateMux(userRouter, catalogueRouter)
+
+	return startHTTPServer(ctx, ":9090", serveMux, logger)
+}
+
+func startHTTPServer(ctx context.Context, addr string, handler gohttp.Handler, logger *zap.Logger) error {
+	srv := &gohttp.Server{Addr: ":9090", Handler: handler}
+	errc := make(chan error, 1)
+
+	go func(errc chan<- error) {
+		if err := srv.ListenAndServe(); err != nil && err != gohttp.ErrServerClosed {
+			errc <- fmt.Errorf("http server shutdonwn: %w", err)
+		}
+	}(errc)
+
+	shutdown := func(timeout time.Duration) error {
+		logger.Info("received context cancellation; shutting down server")
+
+		shutCtx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+
+		if err := srv.Shutdown(shutCtx); err != nil {
+			return fmt.Errorf("http server shutdonwn: %w", err)
+		}
+		return nil
 	}
 
-	return server.Start(ctx, ":9090")
+	select {
+	case err := <-errc:
+		return err
+	case <-ctx.Done():
+		return shutdown(time.Second * 5)
+	}
 }
 
 func doHealthCheck(db *sqlx.DB) http.HealthCheckerFunc {

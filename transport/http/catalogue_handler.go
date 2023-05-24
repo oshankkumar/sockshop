@@ -8,17 +8,25 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
+
 	"github.com/oshankkumar/sockshop/api"
 	"github.com/oshankkumar/sockshop/domain"
 )
 
-type HealthChecker interface {
-	CheckHealth(ctx context.Context) ([]api.Health, error)
+type CatalogueRouter struct {
+	SockLister SockLister
+	SockStore  domain.SockStore
 }
 
-type HealthCheckerFunc func(ctx context.Context) ([]api.Health, error)
+func (c *CatalogueRouter) Routes() []Route {
+	return []Route{
+		{http.MethodGet, "/catalogue", ListSocksHandler(c.SockLister)},
+		{http.MethodGet, "/catalogue/size", CountTagsHandler(c.SockStore)},
+		{http.MethodGet, "/catalogue/{id}", GetSocksHandler(c.SockStore)},
+		{http.MethodGet, "/tags", TagsHandler(c.SockStore)},
+	}
+}
 
-func (h HealthCheckerFunc) CheckHealth(ctx context.Context) ([]api.Health, error) { return h(ctx) }
 
 type SockLister interface {
 	ListSocks(ctx context.Context, req *api.ListSockParams) (*api.ListSockResponse, error)
@@ -36,17 +44,6 @@ type tagsGetter interface {
 	Tags(ctx context.Context) ([]string, error)
 }
 
-func HealthCheckHandler(h HealthChecker) HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) *Error {
-		hh, err := h.CheckHealth(r.Context())
-		if err != nil {
-			return &Error{http.StatusInternalServerError, err.Error(), err}
-		}
-
-		RespondJSON(w, api.HealthResponse{Healths: hh}, http.StatusOK)
-		return nil
-	}
-}
 
 func ListSocksHandler(sockLister SockLister) HandlerFunc {
 	return HandlerFunc(func(w http.ResponseWriter, r *http.Request) *Error {
