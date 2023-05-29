@@ -23,7 +23,3 @@ func (c *Card) MaskCC() {
 	l := len(c.LongNum) - 4
 	c.LongNum = fmt.Sprintf("%v%v", strings.Repeat("*", l), c.LongNum[l:])
 }
-
-func (c *Card) AddLinks(domain string) {
-	c.Links.AddCard(domain, c.ID.String())
-}

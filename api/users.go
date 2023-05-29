@@ -16,10 +16,6 @@ type User struct {
 	Links     Links     `json:"_links"`
 }
 
-func (u *User) AddLinks(domain string) {
-	u.Links.AddCustomer(domain, u.ID.String())
-}
-
 type CreateResponse struct {
 	ID uuid.UUID `json:"id"`
 }

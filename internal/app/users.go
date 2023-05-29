@@ -157,7 +157,7 @@ func (u *UserService) GetAddresses(ctx context.Context, id string) (*api.Address
 		PostCode: addrM.PostCode,
 		Links:    make(api.Links),
 	}
-	addr.AddLinks(u.domain)
+	addr.Links.AddAddress(u.domain, addrM.ID.String())
 
 	return addr, nil
 }
@@ -176,7 +176,7 @@ func (u *UserService) GetCard(ctx context.Context, id string) (*api.Card, error)
 		Links:   make(api.Links),
 	}
 	card.MaskCC()
-	card.AddLinks(u.domain)
+	card.Links.AddCard(u.domain, cardM.ID.String())
 
 	return card, nil
 }
@@ -197,7 +197,7 @@ func (u *UserService) GetUserCards(ctx context.Context, userID string) ([]api.Ca
 			Links:   make(api.Links),
 		}
 		card.MaskCC()
-		card.AddLinks(u.domain)
+		card.Links.AddCard(u.domain, c.ID.String())
 
 		cards = append(cards, card)
 	}
@@ -222,7 +222,7 @@ func (u *UserService) GetUserAddresses(ctx context.Context, userID string) ([]ap
 			PostCode: adr.PostCode,
 			Links:    make(api.Links),
 		}
-		addr.AddLinks(u.domain)
+		addr.Links.AddAddress(u.domain, adr.ID.String())
 
 		addresses = append(addresses, addr)
 	}

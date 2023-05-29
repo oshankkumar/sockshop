@@ -15,7 +15,3 @@ type Address struct {
 	PostCode string    `json:"postcode"`
 	Links    Links     `json:"_links"`
 }
-
-func (a *Address) AddLinks(doamin string) {
-	a.Links.AddAddress(doamin, a.ID.String())
-}
