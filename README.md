@@ -12,6 +12,51 @@ This is basic layout for Go web app.
 
 ## Package Layout
 
+### `Project tree`
+
+```
+.
+├── Makefile
+├── README.md
+├── api
+│   ├── address.go
+│   ├── cards.go
+│   ├── errors.go
+│   ├── links.go
+│   ├── socks.go
+│   └── users.go
+├── assets
+├── bin
+├── cmd
+│   └── sockshop
+│       └── main.go
+├── deploy
+├── go.mod
+├── go.sum
+└── internal
+    ├── app
+    │   ├── catalogue.go
+    │   └── users.go
+    ├── db
+    │   ├── db.go
+    │   └── mysql
+    │       ├── socks.go
+    │       ├── sqlx.go
+    │       └── users.go
+    ├── domain
+    │   ├── errors.go
+    │   ├── socks.go
+    │   └── users.go
+    └── transport
+        ├── grpc
+        └── http
+            ├── catalogue_handler.go
+            ├── middleware.go
+            ├── routes.go
+            ├── server.go
+            └── users_handler.go
+
+```
 ### `/api`
 `api` package should only contain the request and response schema. It should not have any application logic or dependency. Additionally It can also contain interface definitions. Which can use the defined request and respose schema as input/output parmas in the interface methods.
 It should not contain any concrete type which implements those interface. This will provide an abstraction to your business logic.
