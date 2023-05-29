@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/oshankkumar/sockshop/api"
-	"github.com/oshankkumar/sockshop/domain"
+	"github.com/oshankkumar/sockshop/internal/domain"
 )
 
 func NewCatalogueService(s domain.SockStore) *CatalogueService {

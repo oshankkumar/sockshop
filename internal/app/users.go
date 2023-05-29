@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/oshankkumar/sockshop/api"
-	"github.com/oshankkumar/sockshop/domain"
+	"github.com/oshankkumar/sockshop/internal/domain"
 )
 
 func NewUserService(s domain.UserStore, domain string) *UserService {

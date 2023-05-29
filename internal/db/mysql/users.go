@@ -9,8 +9,8 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 
-	"github.com/oshankkumar/sockshop/domain"
 	"github.com/oshankkumar/sockshop/internal/db"
+	"github.com/oshankkumar/sockshop/internal/domain"
 )
 
 const MySQLErrCodeDupe = 1062

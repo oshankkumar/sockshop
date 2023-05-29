@@ -24,12 +24,6 @@ This will contain the main package(s) for this project. The directory name for e
 
 See [/cmd](./cmd/) package for example.
 
-### `/domain`
-`domain` package should only contain your application domain related information. It should define the application domain types and related interfaces. You should not put any concreate implementaion in here. This is an abstraction to your application domain. 
-The actual implementation could be catered using a database or a third party API. Application domain should be independent of the actual concrete implementation.
-
-See [/domain](./domain/) package for example.
-
 ### `/internal`
 
 This package should provide the private application code. It should define the concrete types having methods with actual business logic.
@@ -40,10 +34,20 @@ You can define packages like `internal/db`, `internal/<api-client> ` ..etc. Whic
 
 See [/internal](./internal/) package for example. 
 
-### `/transport`
+### `/internal/domain`
+`domain` package should only contain your application domain related information. It should define the application domain types and related interfaces. You should not put any concreate implementaion in here. This is an abstraction to your application domain. 
+The actual implementation could be catered using a database or a third party API. Application domain should be independent of the actual concrete implementation.
+
+See [/internal/domain](./internal/domain/) package for example.
+
+### `internal/transport`
 
 This package should contain the application transport layer (eg ..http,grpc ..etc). You can define your application http Handlers in `/transport/http` package. 
 
-See [/transport/http](./transport/http) package for example. 
+See [/internal/transport/http](./internal/transport/http) package for example. 
+
+
+
+
 
 

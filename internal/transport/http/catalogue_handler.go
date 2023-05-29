@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/oshankkumar/sockshop/api"
-	"github.com/oshankkumar/sockshop/domain"
+	"github.com/oshankkumar/sockshop/internal/domain"
 )
 
 type CatalogueRouter struct {
@@ -27,7 +27,6 @@ func (c *CatalogueRouter) Routes() []Route {
 	}
 }
 
-
 type SockLister interface {
 	ListSocks(ctx context.Context, req *api.ListSockParams) (*api.ListSockResponse, error)
 }
@@ -43,7 +42,6 @@ type sockGetter interface {
 type tagsGetter interface {
 	Tags(ctx context.Context) ([]string, error)
 }
-
 
 func ListSocksHandler(sockLister SockLister) HandlerFunc {
 	return HandlerFunc(func(w http.ResponseWriter, r *http.Request) *Error {

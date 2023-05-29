@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/oshankkumar/sockshop/api"
-	"github.com/oshankkumar/sockshop/domain"
+	"github.com/oshankkumar/sockshop/internal/domain"
 )
 
 type UserRouter struct {

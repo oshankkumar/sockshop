@@ -27,10 +27,7 @@ services:
     ports:
       - 9090:9090
     environment:
-      APP_ENV: dev
-      REDIS_ADDRESS: redis:6379
-      BATCH_SIZE: 1
-      PATH_REPLACEMENTS: '[{"name": "SeoPathReplacer", "pattern": "/seo/[^_]+_", "replacement": "/asr/"}]'
+      KEY: value
     volumes:
       - ./:/sockshop
       - go-mod-cache:/go/pkg/mod

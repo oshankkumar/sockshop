@@ -13,7 +13,7 @@ import (
 	"github.com/oshankkumar/sockshop/api"
 	"github.com/oshankkumar/sockshop/internal/app"
 	"github.com/oshankkumar/sockshop/internal/db/mysql"
-	"github.com/oshankkumar/sockshop/transport/http"
+	"github.com/oshankkumar/sockshop/internal/transport/http"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"

@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 
-	"github.com/oshankkumar/sockshop/domain"
 	"github.com/oshankkumar/sockshop/internal/db"
+	"github.com/oshankkumar/sockshop/internal/domain"
 )
 
 const baseQuery = "SELECT sock.id, sock.name, sock.description, sock.price, sock.count, sock.image_urls, " +

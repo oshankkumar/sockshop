@@ -7,7 +7,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	"github.com/oshankkumar/sockshop/domain"
+	"github.com/oshankkumar/sockshop/internal/domain"
 )
 
 func GetContext(ctx context.Context, q sqlx.QueryerContext, dest interface{}, query string, args ...interface{}) error {
