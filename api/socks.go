@@ -49,8 +49,6 @@ type (
 	}
 )
 
-type (
-	CatalogueService interface {
-		ListSocks(ctx context.Context, req *ListSockParams) (*ListSockResponse, error)
-	}
-)
+type CatalogueService interface {
+	ListSocks(ctx context.Context, req *ListSockParams) (*ListSockResponse, error)
+}

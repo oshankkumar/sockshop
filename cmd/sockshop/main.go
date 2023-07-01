@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5"
 	"github.com/oshankkumar/sockshop/api"
 	"github.com/oshankkumar/sockshop/internal/app"
 	"github.com/oshankkumar/sockshop/internal/db/mysql"
@@ -58,29 +60,33 @@ func run(ctx context.Context, conf AppConfig) error {
 		return fmt.Errorf("db ping: %w", err)
 	}
 
-	var catalogueRouter http.Router
+	var catalogueRoutes http.Routes
 	{
 		sockStore := mysql.NewSockStore(db)
 		catalogueSvc := app.NewCatalogueService(sockStore)
-		catalogueRouter = &http.CatalogueRouter{SockLister: catalogueSvc, SockStore: sockStore}
+		catalogueRoutes = &http.CatalogueRoutes{SockLister: catalogueSvc, SockStore: sockStore}
 	}
 
-	var userRouter http.Router
+	var userRoutes http.Routes
 	{
 		userStore := mysql.NewUserStore(db)
 		userService := app.NewUserService(userStore, conf.Domain)
-		userRouter = &http.UserRouter{UserService: userService}
+		userRoutes = &http.UserRoutes{UserService: userService}
 	}
 
+	mux := chi.NewMux()
+	mux.Use(middleware.Logger)
+
 	apiServer := &http.APIServer{
+		Mux:           mux,
 		ImagePath:     conf.ImagePath,
 		HealthChecker: doHealthCheck(db),
 		Middleware:    http.ChainMiddleware(http.WithLogging(logger)),
 	}
 
-	serveMux := apiServer.CreateMux(userRouter, catalogueRouter)
+	apiServer.InstallRoutes(userRoutes, catalogueRoutes)
 
-	return startHTTPServer(ctx, ":9090", serveMux, logger)
+	return startHTTPServer(ctx, ":9090", apiServer, logger)
 }
 
 func startHTTPServer(ctx context.Context, addr string, handler gohttp.Handler, logger *zap.Logger) error {

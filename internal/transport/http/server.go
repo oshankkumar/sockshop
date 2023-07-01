@@ -4,33 +4,34 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi/v5"
 	"github.com/oshankkumar/sockshop/api"
 )
 
 type APIServer struct {
+	Mux           chi.Router
 	ImagePath     string
 	HealthChecker HealthChecker
 	Middleware    Middleware
 }
 
-func (s *APIServer) CreateMux(routers ...Router) *mux.Router {
-	serveMux := mux.NewRouter()
+func (s *APIServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.Mux.ServeHTTP(w, r)
+}
 
-	for _, router := range routers {
-		for _, route := range router.Routes() {
-			h := s.Middleware(route.Handler)
-			serveMux.Methods(route.Method).Path(route.Path).Handler(ToStdHandler(h))
+func (s *APIServer) InstallRoutes(routes ...Routes) {
+	s.Mux.Get("/health", ToStdHandler(HealthCheckHandler(s.HealthChecker)).ServeHTTP)
+
+	s.Mux.Handle("/catalogue/images/*", http.StripPrefix(
+		"/catalogue/images/", http.FileServer(http.Dir(s.ImagePath)),
+	))
+
+	for _, route := range routes {
+		for _, r := range route.Routes() {
+			h := s.Middleware(r.Handler)
+			s.Mux.Method(r.Method, r.Path, ToStdHandler(h))
 		}
 	}
-
-	imgServer := http.FileServer(http.Dir(s.ImagePath))
-	imgServer = http.StripPrefix("/catalogue/images/", imgServer)
-
-	serveMux.Methods(http.MethodGet).PathPrefix("/catalogue/images/").Handler(imgServer)
-	serveMux.Methods(http.MethodGet).Path("/health").Handler(ToStdHandler(HealthCheckHandler(s.HealthChecker)))
-
-	return serveMux
 }
 
 type HealthChecker interface {

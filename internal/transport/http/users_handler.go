@@ -6,18 +6,18 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/gorilla/mux"
 
 	"github.com/oshankkumar/sockshop/api"
 	"github.com/oshankkumar/sockshop/internal/domain"
 )
 
-type UserRouter struct {
+type UserRoutes struct {
 	UserService api.UserService
 }
 
-func (u *UserRouter) Routes() []Route {
+func (u *UserRoutes) Routes() []Route {
 	return []Route{
 		{http.MethodPost, "/login", LoginHandler(u.UserService)},
 		{http.MethodPost, "/customers", RegisterUserHandler(u.UserService)},
@@ -114,7 +114,7 @@ func RegisterUserHandler(ur userRegisterationService) HandlerFunc {
 
 func GetUserHandler(us userGetter) HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *Error {
-		userID := mux.Vars(r)["id"]
+		userID := chi.URLParam(r, "id")
 		if userID == "" {
 			return &Error{Code: http.StatusNotFound, Message: "user not exist", Err: api.ErrNotFound}
 		}
@@ -135,7 +135,7 @@ func GetUserHandler(us userGetter) HandlerFunc {
 
 func GetCardHandler(cg cardGetter) HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *Error {
-		cardID := mux.Vars(r)["id"]
+		cardID := chi.URLParam(r, "id")
 		if cardID == "" {
 			return &Error{Code: http.StatusNotFound, Message: "card does not exist", Err: api.ErrNotFound}
 		}
@@ -156,7 +156,7 @@ func GetCardHandler(cg cardGetter) HandlerFunc {
 
 func GetUserCardsHandler(cg userCardsGetter) HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *Error {
-		userID := mux.Vars(r)["id"]
+		userID := chi.URLParam(r, "id")
 		if userID == "" {
 			return &Error{Code: http.StatusNotFound, Message: "user does not exist", Err: api.ErrNotFound}
 		}
@@ -177,7 +177,7 @@ func GetUserCardsHandler(cg userCardsGetter) HandlerFunc {
 
 func GetAddressHandler(ag addressGetter) HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *Error {
-		addrID := mux.Vars(r)["id"]
+		addrID := chi.URLParam(r, "id")
 		if addrID == "" {
 			return &Error{Code: http.StatusNotFound, Message: "address does not exist", Err: api.ErrNotFound}
 		}
@@ -198,7 +198,7 @@ func GetAddressHandler(ag addressGetter) HandlerFunc {
 
 func GetUserAddressesHandler(ag userAddressesGetter) HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *Error {
-		userID := mux.Vars(r)["id"]
+		userID := chi.URLParam(r, "id")
 		if userID == "" {
 			return &Error{Code: http.StatusNotFound, Message: "user does not exist", Err: api.ErrNotFound}
 		}
@@ -219,7 +219,7 @@ func GetUserAddressesHandler(ag userAddressesGetter) HandlerFunc {
 
 func CreateCardHandler(cc cardCreator) HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *Error {
-		userID := mux.Vars(r)["id"]
+		userID := chi.URLParam(r, "id")
 		if userID == "" {
 			return &Error{Code: http.StatusNotFound, Message: "user not exists", Err: api.ErrNotFound}
 		}
@@ -245,7 +245,7 @@ func CreateCardHandler(cc cardCreator) HandlerFunc {
 
 func CreateAddressHandler(ac addressCreator) HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *Error {
-		userID := mux.Vars(r)["id"]
+		userID := chi.URLParam(r, "id")
 		if userID == "" {
 			return &Error{Code: http.StatusNotFound, Message: "user not exists", Err: api.ErrNotFound}
 		}

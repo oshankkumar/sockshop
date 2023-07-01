@@ -29,7 +29,7 @@ func ToStdHandler(h Handler) http.Handler {
 	})
 }
 
-type Router interface {
+type Routes interface {
 	Routes() []Route
 }
 

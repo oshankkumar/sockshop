@@ -7,18 +7,17 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gorilla/mux"
-
+	"github.com/go-chi/chi/v5"
 	"github.com/oshankkumar/sockshop/api"
 	"github.com/oshankkumar/sockshop/internal/domain"
 )
 
-type CatalogueRouter struct {
+type CatalogueRoutes struct {
 	SockLister SockLister
 	SockStore  domain.SockStore
 }
 
-func (c *CatalogueRouter) Routes() []Route {
+func (c *CatalogueRoutes) Routes() []Route {
 	return []Route{
 		{http.MethodGet, "/catalogue", ListSocksHandler(c.SockLister)},
 		{http.MethodGet, "/catalogue/size", CountTagsHandler(c.SockStore)},
@@ -74,9 +73,7 @@ func CountTagsHandler(tagCounter tagCounter) HandlerFunc {
 
 func GetSocksHandler(sockGetter sockGetter) HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *Error {
-		id := mux.Vars(r)["id"]
-
-		sock, err := sockGetter.Get(r.Context(), id)
+		sock, err := sockGetter.Get(r.Context(), chi.URLParam(r, "id"))
 
 		switch {
 		case errors.Is(err, domain.ErrNotFound):

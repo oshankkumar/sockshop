@@ -41,10 +41,8 @@ func (u *UserService) Login(ctx context.Context, username, password string) (*ap
 		Username:  username,
 		Email:     user.Email,
 		ID:        user.ID,
-		Links:     make(api.Links),
+		Links:     api.NewCustomerLinks(u.domain, user.ID.String()),
 	}
-
-	usr.Links.AddCustomer(u.domain, usr.ID.String())
 
 	return usr, nil
 }
@@ -79,10 +77,8 @@ func (u *UserService) GetUser(ctx context.Context, id string) (*api.User, error)
 		Username:  user.Username,
 		Email:     user.Email,
 		ID:        user.ID,
-		Links:     make(api.Links),
+		Links:     api.NewCustomerLinks(u.domain, user.ID.String()),
 	}
-
-	usr.Links.AddCustomer(u.domain, usr.ID.String())
 
 	return usr, nil
 }
@@ -96,17 +92,14 @@ func (u *UserService) GetUsers(ctx context.Context) ([]api.User, error) {
 	var usrs []api.User
 
 	for _, user := range users {
-		usr := &api.User{
+		usrs = append(usrs, api.User{
 			FirstName: user.FirstName,
 			LastName:  user.LastName,
 			Username:  user.Username,
 			Email:     user.Email,
 			ID:        user.ID,
-			Links:     make(api.Links),
-		}
-
-		usr.Links.AddCustomer(u.domain, usr.ID.String())
-		users = append(users, user)
+			Links:     api.NewCustomerLinks(u.domain, user.ID.String()),
+		})
 	}
 
 	return usrs, nil
@@ -155,9 +148,8 @@ func (u *UserService) GetAddresses(ctx context.Context, id string) (*api.Address
 		Country:  addrM.Country,
 		City:     addrM.City,
 		PostCode: addrM.PostCode,
-		Links:    make(api.Links),
+		Links:    api.NewAddressLinks(u.domain, addrM.ID.String()),
 	}
-	addr.Links.AddAddress(u.domain, addrM.ID.String())
 
 	return addr, nil
 }
@@ -173,10 +165,9 @@ func (u *UserService) GetCard(ctx context.Context, id string) (*api.Card, error)
 		LongNum: cardM.LongNum,
 		Expires: cardM.Expires,
 		CCV:     cardM.CCV,
-		Links:   make(api.Links),
+		Links:   api.NewCardLinks(u.domain, cardM.ID.String()),
 	}
 	card.MaskCC()
-	card.Links.AddCard(u.domain, cardM.ID.String())
 
 	return card, nil
 }
@@ -194,11 +185,9 @@ func (u *UserService) GetUserCards(ctx context.Context, userID string) ([]api.Ca
 			LongNum: c.LongNum,
 			Expires: c.Expires,
 			CCV:     c.CCV,
-			Links:   make(api.Links),
+			Links:   api.NewCardLinks(u.domain, c.ID.String()),
 		}
 		card.MaskCC()
-		card.Links.AddCard(u.domain, c.ID.String())
-
 		cards = append(cards, card)
 	}
 
@@ -213,18 +202,15 @@ func (u *UserService) GetUserAddresses(ctx context.Context, userID string) ([]ap
 
 	var addresses []api.Address
 	for _, adr := range addrsM {
-		addr := api.Address{
+		addresses = append(addresses, api.Address{
 			ID:       adr.ID,
 			Street:   adr.Street,
 			Number:   adr.Number,
 			Country:  adr.Country,
 			City:     adr.City,
 			PostCode: adr.PostCode,
-			Links:    make(api.Links),
-		}
-		addr.Links.AddAddress(u.domain, adr.ID.String())
-
-		addresses = append(addresses, addr)
+			Links:    api.NewAddressLinks(u.domain, adr.ID.String()),
+		})
 	}
 
 	return addresses, nil
