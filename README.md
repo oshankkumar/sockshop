@@ -4,11 +4,11 @@
 
 
 A Golang demo web application. It is intended to aid the demonstration of how to write a web application in Golang using SOLID principles.
-This is a re-write of https://github.dev/microservices-demo/ to demonstrate how to write a Golang web app following SOLID principles.
+This is a rewrite of https://github.dev/microservices-demo/ to demonstrate how to write a Golang web app following SOLID and idiomatic Go principles.
 
 ## Overview
 
-This is basic layout for Go web app.
+This is the basic layout for the Go web app.
 
 ## Package Layout
 
