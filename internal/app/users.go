@@ -218,13 +218,13 @@ func (u *UserService) GetUserAddresses(ctx context.Context, userID string) ([]ap
 
 func calculatePassHash(pass, salt string) string {
 	h := sha1.New()
-	io.WriteString(h, salt)
-	io.WriteString(h, pass)
+	_, _ = io.WriteString(h, salt)
+	_, _ = io.WriteString(h, pass)
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
 func salt() string {
 	h := sha1.New()
-	io.WriteString(h, strconv.Itoa(int(time.Now().UnixNano())))
+	_, _ = io.WriteString(h, strconv.Itoa(int(time.Now().UnixNano())))
 	return fmt.Sprintf("%x", h.Sum(nil))
 }

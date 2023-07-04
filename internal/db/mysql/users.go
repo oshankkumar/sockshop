@@ -166,7 +166,7 @@ func (u *UserStore) CreateAddress(ctx context.Context, addr *domain.Address, use
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	addr.ID = uuid.New()
 	query := "INSERT INTO address(id, street, number, country, city, postcode) VALUES (?, ?, ?, ?, ?, ?)"
@@ -197,7 +197,7 @@ func (u *UserStore) CreateCard(ctx context.Context, card *domain.Card, userID st
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	card.ID = uuid.New()
 
