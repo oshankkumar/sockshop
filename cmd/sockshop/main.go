@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	gohttp "net/http"
 	"os/signal"
 	"syscall"
 	"time"
@@ -86,39 +85,7 @@ func run(ctx context.Context, conf AppConfig) error {
 
 	apiServer.InstallRoutes(userRoutes, catalogueRoutes)
 
-	return startHTTPServer(ctx, ":9090", apiServer, logger)
-}
-
-func startHTTPServer(ctx context.Context, addr string, handler gohttp.Handler, logger *zap.Logger) error {
-	srv := &gohttp.Server{Addr: ":9090", Handler: handler}
-	errc := make(chan error, 1)
-
-	logger.Info("starting app http server :9090")
-
-	go func(errc chan<- error) {
-		if err := srv.ListenAndServe(); err != nil && err != gohttp.ErrServerClosed {
-			errc <- fmt.Errorf("http server shutdonwn: %w", err)
-		}
-	}(errc)
-
-	shutdown := func(timeout time.Duration) error {
-		logger.Info("received context cancellation; shutting down server")
-
-		shutCtx, cancel := context.WithTimeout(context.Background(), timeout)
-		defer cancel()
-
-		if err := srv.Shutdown(shutCtx); err != nil {
-			return fmt.Errorf("http server shutdonwn: %w", err)
-		}
-		return nil
-	}
-
-	select {
-	case err := <-errc:
-		return err
-	case <-ctx.Done():
-		return shutdown(time.Second * 5)
-	}
+	return apiServer.Start(ctx, ":9090")
 }
 
 func doHealthCheck(db *sqlx.DB) http.HealthCheckerFunc {

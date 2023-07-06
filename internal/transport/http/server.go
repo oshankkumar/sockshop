@@ -2,10 +2,13 @@ package http
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/oshankkumar/sockshop/api"
+	"go.uber.org/zap"
 )
 
 type APIServer struct {
@@ -13,6 +16,39 @@ type APIServer struct {
 	ImagePath     string
 	HealthChecker HealthChecker
 	Middleware    Middleware
+	Logger        *zap.Logger
+}
+
+func (a *APIServer) Start(ctx context.Context, addr string) error {
+	srv := &http.Server{Addr: addr, Handler: a}
+	errc := make(chan error, 1)
+
+	a.Logger.Info("starting app http server :9090")
+
+	go func(errc chan<- error) {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			errc <- fmt.Errorf("http server shutdonwn: %w", err)
+		}
+	}(errc)
+
+	shutdown := func(timeout time.Duration) error {
+		a.Logger.Info("received context cancellation; shutting down server")
+
+		shutCtx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+
+		if err := srv.Shutdown(shutCtx); err != nil {
+			return fmt.Errorf("http server shutdonwn: %w", err)
+		}
+		return nil
+	}
+
+	select {
+	case err := <-errc:
+		return err
+	case <-ctx.Done():
+		return shutdown(time.Second * 5)
+	}
 }
 
 func (s *APIServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
