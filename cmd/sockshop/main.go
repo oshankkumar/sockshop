@@ -81,6 +81,7 @@ func run(ctx context.Context, conf AppConfig) error {
 		ImagePath:     conf.ImagePath,
 		HealthChecker: doHealthCheck(db),
 		Middleware:    http.ChainMiddleware(http.WithLogging(logger)),
+		Logger:        logger,
 	}
 
 	apiServer.InstallRoutes(userRoutes, catalogueRoutes)
