@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/oshankkumar/sockshop/api"
 	"github.com/oshankkumar/sockshop/internal/app"

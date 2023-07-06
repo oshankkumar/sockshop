@@ -6,6 +6,7 @@
 A Golang demo web application. It is intended to aid the demonstration of how to write a web application in Golang using SOLID principles.
 This is a rewrite of https://github.dev/microservices-demo/ to demonstrate how to write a Golang web app following SOLID and idiomatic Go principles.
 
+You can also read this [blog post](https://medium.com/@oshankkumar/project-layout-of-golang-web-application-bae212d8f4b6) to know more about how to structure a golang web app.
 ## Overview
 
 This is the basic layout for the Go web app.
@@ -91,8 +92,8 @@ This package should contain the application transport layer (eg ..http,grpc ..et
 
 See [/internal/transport/http](./internal/transport/http) package for example. 
 
+## Dependency graph
 
+Generated using github.com/kisielk/godepgraph
 
-
-
-
+![Dependency Graph](godepgraph.png)
