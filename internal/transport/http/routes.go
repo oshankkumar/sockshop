@@ -29,10 +29,6 @@ func ToStdHandler(h Handler) http.Handler {
 	})
 }
 
-type Routes interface {
-	Routes() []Route
-}
-
 type Route struct {
 	Method  string
 	Path    string

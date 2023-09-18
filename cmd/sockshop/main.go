@@ -9,8 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/chi/v5"
 	"github.com/oshankkumar/sockshop/api"
 	"github.com/oshankkumar/sockshop/internal/app"
 	"github.com/oshankkumar/sockshop/internal/db/mysql"
@@ -59,32 +57,20 @@ func run(ctx context.Context, conf AppConfig) error {
 		return fmt.Errorf("db ping: %w", err)
 	}
 
-	var catalogueRoutes http.Routes
-	{
-		sockStore := mysql.NewSockStore(db)
-		catalogueSvc := app.NewCatalogueService(sockStore)
-		catalogueRoutes = &http.CatalogueRoutes{SockLister: catalogueSvc, SockStore: sockStore}
-	}
+	sockStore := mysql.NewSockStore(db)
+	catalogueSvc := app.NewCatalogueService(sockStore)
 
-	var userRoutes http.Routes
-	{
-		userStore := mysql.NewUserStore(db)
-		userService := app.NewUserService(userStore, conf.Domain)
-		userRoutes = &http.UserRoutes{UserService: userService}
-	}
-
-	mux := chi.NewMux()
-	mux.Use(middleware.Logger)
+	userStore := mysql.NewUserStore(db)
+	userService := app.NewUserService(userStore, conf.Domain)
 
 	apiServer := &http.APIServer{
-		Mux:           mux,
 		ImagePath:     conf.ImagePath,
 		HealthChecker: doHealthCheck(db),
-		Middleware:    http.ChainMiddleware(http.WithLogging(logger)),
 		Logger:        logger,
+		UserService:   userService,
+		SockLister:    catalogueSvc,
+		SockStore:     sockStore,
 	}
-
-	apiServer.InstallRoutes(userRoutes, catalogueRoutes)
 
 	return apiServer.Start(ctx, ":9090")
 }

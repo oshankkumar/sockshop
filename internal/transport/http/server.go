@@ -8,22 +8,27 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/oshankkumar/sockshop/api"
+	"github.com/oshankkumar/sockshop/internal/domain"
 	"go.uber.org/zap"
 )
 
 type APIServer struct {
-	Mux           chi.Router
+	mux           chi.Router
 	ImagePath     string
 	HealthChecker HealthChecker
-	Middleware    Middleware
 	Logger        *zap.Logger
+	UserService   api.UserService
+	SockLister    SockLister
+	SockStore     domain.SockStore
 }
 
-func (a *APIServer) Start(ctx context.Context, addr string) error {
-	srv := &http.Server{Addr: addr, Handler: a}
+func (s *APIServer) Start(ctx context.Context, addr string) error {
+	s.mux = s.initRoutes()
+
+	srv := &http.Server{Addr: addr, Handler: s}
 	errc := make(chan error, 1)
 
-	a.Logger.Info("starting app http server :9090")
+	s.Logger.Info("starting app http server :9090")
 
 	go func(errc chan<- error) {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -32,7 +37,7 @@ func (a *APIServer) Start(ctx context.Context, addr string) error {
 	}(errc)
 
 	shutdown := func(timeout time.Duration) error {
-		a.Logger.Info("received context cancellation; shutting down server")
+		s.Logger.Info("received context cancellation; shutting down server")
 
 		shutCtx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
@@ -52,22 +57,44 @@ func (a *APIServer) Start(ctx context.Context, addr string) error {
 }
 
 func (s *APIServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.Mux.ServeHTTP(w, r)
+	s.mux.ServeHTTP(w, r)
 }
 
-func (s *APIServer) InstallRoutes(routes ...Routes) {
-	s.Mux.Get("/health", ToStdHandler(HealthCheckHandler(s.HealthChecker)).ServeHTTP)
+func (s *APIServer) initRoutes() chi.Router {
+	mux := chi.NewMux()
 
-	s.Mux.Handle("/catalogue/images/*", http.StripPrefix(
+	routes := []Route{
+		// User Routes
+		{http.MethodPost, "/login", LoginHandler(s.UserService)},
+		{http.MethodPost, "/customers", RegisterUserHandler(s.UserService)},
+		{http.MethodGet, "/customers/{id}", GetUserHandler(s.UserService)},
+		{http.MethodGet, "/cards/{id}", GetCardHandler(s.UserService)},
+		{http.MethodGet, "/addresses/{id}", GetAddressHandler(s.UserService)},
+		{http.MethodGet, "/customers/{id}/cards", GetUserCardsHandler(s.UserService)},
+		{http.MethodGet, "/customers/{id}/addresses", GetUserAddressesHandler(s.UserService)},
+		{http.MethodPost, "/customers/{id}/cards", CreateCardHandler(s.UserService)},
+		{http.MethodPost, "/customers/{id}/addresses", CreateAddressHandler(s.UserService)},
+
+		// catalogue Routes
+		{http.MethodGet, "/catalogue", ListSocksHandler(s.SockLister)},
+		{http.MethodGet, "/catalogue/size", CountTagsHandler(s.SockStore)},
+		{http.MethodGet, "/catalogue/{id}", GetSocksHandler(s.SockStore)},
+		{http.MethodGet, "/tags", TagsHandler(s.SockStore)},
+	}
+
+	for _, r := range routes {
+		h := r.Handler
+		h = WithLogging(s.Logger)(h)
+		mux.Method(r.Method, r.Path, ToStdHandler(h))
+	}
+
+	mux.Get("/health", ToStdHandler(HealthCheckHandler(s.HealthChecker)).ServeHTTP)
+
+	mux.Handle("/catalogue/images/*", http.StripPrefix(
 		"/catalogue/images/", http.FileServer(http.Dir(s.ImagePath)),
 	))
 
-	for _, route := range routes {
-		for _, r := range route.Routes() {
-			h := s.Middleware(r.Handler)
-			s.Mux.Method(r.Method, r.Path, ToStdHandler(h))
-		}
-	}
+	return mux
 }
 
 type HealthChecker interface {

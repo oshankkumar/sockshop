@@ -12,20 +12,6 @@ import (
 	"github.com/oshankkumar/sockshop/internal/domain"
 )
 
-type CatalogueRoutes struct {
-	SockLister SockLister
-	SockStore  domain.SockStore
-}
-
-func (c *CatalogueRoutes) Routes() []Route {
-	return []Route{
-		{http.MethodGet, "/catalogue", ListSocksHandler(c.SockLister)},
-		{http.MethodGet, "/catalogue/size", CountTagsHandler(c.SockStore)},
-		{http.MethodGet, "/catalogue/{id}", GetSocksHandler(c.SockStore)},
-		{http.MethodGet, "/tags", TagsHandler(c.SockStore)},
-	}
-}
-
 type SockLister interface {
 	ListSocks(ctx context.Context, req *api.ListSockParams) (*api.ListSockResponse, error)
 }
