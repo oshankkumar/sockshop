@@ -17,12 +17,19 @@ type CatalogueRoutes struct {
 	SockStore  domain.SockStore
 }
 
-func (c *CatalogueRoutes) Routes() []Route {
-	return []Route{
+func (c *CatalogueRoutes) InstallRoutes(mux Mux) {
+	routeDefs := []struct {
+		method  string
+		pattern string
+		handler Handler
+	}{
 		{http.MethodGet, "/catalogue", ListSocksHandler(c.SockLister)},
 		{http.MethodGet, "/catalogue/size", CountTagsHandler(c.SockStore)},
 		{http.MethodGet, "/catalogue/{id}", GetSocksHandler(c.SockStore)},
 		{http.MethodGet, "/tags", TagsHandler(c.SockStore)},
+	}
+	for _, r := range routeDefs {
+		mux.Method(r.method, r.pattern, ToStdHandler(r.handler))
 	}
 }
 

@@ -17,8 +17,12 @@ type UserRoutes struct {
 	UserService api.UserService
 }
 
-func (u *UserRoutes) Routes() []Route {
-	return []Route{
+func (u *UserRoutes) InstallRoutes(mux Mux) {
+	routeDefs := []struct {
+		method  string
+		pattern string
+		handler Handler
+	}{
 		{http.MethodPost, "/login", LoginHandler(u.UserService)},
 		{http.MethodPost, "/customers", RegisterUserHandler(u.UserService)},
 		{http.MethodGet, "/customers/{id}", GetUserHandler(u.UserService)},
@@ -28,6 +32,9 @@ func (u *UserRoutes) Routes() []Route {
 		{http.MethodGet, "/customers/{id}/addresses", GetUserAddressesHandler(u.UserService)},
 		{http.MethodPost, "/customers/{id}/cards", CreateCardHandler(u.UserService)},
 		{http.MethodPost, "/customers/{id}/addresses", CreateAddressHandler(u.UserService)},
+	}
+	for _, r := range routeDefs {
+		mux.Method(r.method, r.pattern, ToStdHandler(r.handler))
 	}
 }
 

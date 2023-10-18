@@ -6,27 +6,26 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/oshankkumar/sockshop/api"
 	"go.uber.org/zap"
 )
 
 type APIServer struct {
-	Mux           chi.Router
-	ImagePath     string
-	HealthChecker HealthChecker
-	Middleware    Middleware
-	Logger        *zap.Logger
+	Addr   string
+	Mux    http.Handler
+	Logger *zap.Logger
+
+	server *http.Server
 }
 
-func (a *APIServer) Start(ctx context.Context, addr string) error {
-	srv := &http.Server{Addr: addr, Handler: a}
+func (a *APIServer) Start(ctx context.Context) error {
+	a.server = &http.Server{Addr: a.Addr, Handler: a.Mux}
 	errc := make(chan error, 1)
 
 	a.Logger.Info("starting app http server :9090")
 
 	go func(errc chan<- error) {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := a.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errc <- fmt.Errorf("http server shutdonwn: %w", err)
 		}
 	}(errc)
@@ -37,7 +36,7 @@ func (a *APIServer) Start(ctx context.Context, addr string) error {
 		shutCtx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
-		if err := srv.Shutdown(shutCtx); err != nil {
+		if err := a.server.Shutdown(shutCtx); err != nil {
 			return fmt.Errorf("http server shutdonwn: %w", err)
 		}
 		return nil
@@ -48,25 +47,6 @@ func (a *APIServer) Start(ctx context.Context, addr string) error {
 		return err
 	case <-ctx.Done():
 		return shutdown(time.Second * 5)
-	}
-}
-
-func (s *APIServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.Mux.ServeHTTP(w, r)
-}
-
-func (s *APIServer) InstallRoutes(routes ...Routes) {
-	s.Mux.Get("/health", ToStdHandler(HealthCheckHandler(s.HealthChecker)).ServeHTTP)
-
-	s.Mux.Handle("/catalogue/images/*", http.StripPrefix(
-		"/catalogue/images/", http.FileServer(http.Dir(s.ImagePath)),
-	))
-
-	for _, route := range routes {
-		for _, r := range route.Routes() {
-			h := s.Middleware(r.Handler)
-			s.Mux.Method(r.Method, r.Path, ToStdHandler(h))
-		}
 	}
 }
 
@@ -88,4 +68,18 @@ func HealthCheckHandler(h HealthChecker) HandlerFunc {
 		RespondJSON(w, api.HealthResponse{Healths: hh}, http.StatusOK)
 		return nil
 	}
+}
+
+func HealthCheckRouter(hc HealthChecker) Router {
+	return RouterFunc(func(m Mux) {
+		m.Method(http.MethodGet, "/health", ToStdHandler(HealthCheckHandler(hc)))
+	})
+}
+
+func ImageServeRouter(path string) Router {
+	return RouterFunc(func(mux Mux) {
+		mux.Method(http.MethodGet, "/catalogue/images/*", http.StripPrefix(
+			"/catalogue/images/", http.FileServer(http.Dir(path)),
+		))
+	})
 }
