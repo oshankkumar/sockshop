@@ -9,7 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/oshankkumar/sockshop/api"
 	"github.com/oshankkumar/sockshop/internal/app"
@@ -59,34 +58,35 @@ func run(ctx context.Context, conf AppConfig) error {
 		return fmt.Errorf("db ping: %w", err)
 	}
 
-	var catalogueRoutes http.Routes
+	routers := http.Routers{
+		http.HealthCheckRouter(doHealthCheck(db)),
+		http.ImageServeRouter(conf.ImagePath),
+	}
+
 	{
 		sockStore := mysql.NewSockStore(db)
 		catalogueSvc := app.NewCatalogueService(sockStore)
-		catalogueRoutes = &http.CatalogueRoutes{SockLister: catalogueSvc, SockStore: sockStore}
+		routers = append(routers, &http.CatalogueRoutes{SockLister: catalogueSvc, SockStore: sockStore})
 	}
 
-	var userRoutes http.Routes
 	{
 		userStore := mysql.NewUserStore(db)
 		userService := app.NewUserService(userStore, conf.Domain)
-		userRoutes = &http.UserRoutes{UserService: userService}
+		routers = append(routers, &http.UserRoutes{UserService: userService})
 	}
 
-	mux := chi.NewMux()
-	mux.Use(middleware.Logger)
+	var mux http.Mux = chi.NewMux()
+	mux = http.NewInstrumentedMux(mux, http.LogginMiddleware(logger))
+
+	routers.InstallRoutes(mux)
 
 	apiServer := &http.APIServer{
-		Mux:           mux,
-		ImagePath:     conf.ImagePath,
-		HealthChecker: doHealthCheck(db),
-		Middleware:    http.ChainMiddleware(http.WithLogging(logger)),
-		Logger:        logger,
+		Addr:   ":9090",
+		Mux:    mux,
+		Logger: logger,
 	}
 
-	apiServer.InstallRoutes(userRoutes, catalogueRoutes)
-
-	return apiServer.Start(ctx, ":9090")
+	return apiServer.Start(ctx)
 }
 
 func doHealthCheck(db *sqlx.DB) http.HealthCheckerFunc {

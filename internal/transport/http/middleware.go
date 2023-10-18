@@ -2,33 +2,29 @@ package http
 
 import (
 	"net/http"
+	"time"
 
+	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
 )
 
-type Middleware func(Handler) Handler
+type MiddlewareFunc func(method, pattern string, h http.Handler) http.Handler
 
-func WithLogging(log *zap.Logger) Middleware {
-	return func(h Handler) Handler {
-		return HandlerFunc(func(w http.ResponseWriter, r *http.Request) *Error {
-			if apiErr := h.ServeHTTP(w, r); apiErr != nil {
-				log.Error("api error", zap.Any("details", apiErr), zap.Error(apiErr.Err))
-				return apiErr
-			}
+func LogginMiddleware(log *zap.Logger) MiddlewareFunc {
+	return func(method, pattern string, h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
 
-			log.Info("api success", zap.String("url", r.RequestURI))
-			return nil
-		})
-	}
-}
+			wr := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+			h.ServeHTTP(wr, r)
 
-func ChainMiddleware(mm ...Middleware) Middleware {
-	return func(h Handler) Handler {
-		return HandlerFunc(func(w http.ResponseWriter, r *http.Request) *Error {
-			for _, m := range mm {
-				h = m(h)
-			}
-			return h.ServeHTTP(w, r)
+			log.Info("request served",
+				zap.String("method", r.Method),
+				zap.String("url", r.RequestURI),
+				zap.Int("status", wr.Status()),
+				zap.Int("bytes_written", wr.BytesWritten()),
+				zap.Duration("took", time.Since(start)),
+			)
 		})
 	}
 }
