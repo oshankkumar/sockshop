@@ -1,4 +1,4 @@
-package http
+package httpkit
 
 import (
 	"encoding/json"
@@ -35,36 +35,4 @@ func RespondJSON(w http.ResponseWriter, v interface{}, status int) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-type Router interface {
-	InstallRoutes(mux Mux)
-}
-
-type RouterFunc func(Mux)
-
-func (r RouterFunc) InstallRoutes(mux Mux) { r(mux) }
-
-type Mux interface {
-	http.Handler
-	Method(method, pattern string, h http.Handler)
-}
-
-type Routers []Router
-
-func (rr Routers) InstallRoutes(mux Mux) {
-	for _, r := range rr {
-		r.InstallRoutes(mux)
-	}
-}
-
-type InstrumentedMux struct {
-	Mux
-	middleware MiddlewareFunc
-}
-
-func (i *InstrumentedMux) Method(method, pattern string, h http.Handler) {
-	i.Mux.Method(method, pattern, i.middleware(method, pattern, h))
-}
-
-func NewInstrumentedMux(m Mux, middleware MiddlewareFunc) Mux {
-	return &InstrumentedMux{Mux: m, middleware: middleware}
-}
+type MiddlewareFunc func(method, pattern string, h http.Handler) http.Handler

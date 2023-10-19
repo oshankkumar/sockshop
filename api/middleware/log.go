@@ -1,4 +1,4 @@
-package http
+package middleware
 
 import (
 	"net/http"
@@ -6,11 +6,11 @@ import (
 
 	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
+
+	"github.com/oshankkumar/sockshop/api/httpkit"
 )
 
-type MiddlewareFunc func(method, pattern string, h http.Handler) http.Handler
-
-func LogginMiddleware(log *zap.Logger) MiddlewareFunc {
+func WithLog(log *zap.Logger) httpkit.MiddlewareFunc {
 	return func(method, pattern string, h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
