@@ -11,12 +11,12 @@ import (
 )
 
 func WithLog(log *zap.Logger) httpkit.MiddlewareFunc {
-	return func(method, pattern string, h http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(method, pattern string, h httpkit.Handler) httpkit.Handler {
+		return httpkit.HandlerFunc(func(w http.ResponseWriter, r *http.Request) *httpkit.Error {
 			start := time.Now()
 
 			wr := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
-			h.ServeHTTP(wr, r)
+			apiErr := h.ServeHTTP(wr, r)
 
 			log.Info("request served",
 				zap.String("method", r.Method),
@@ -25,6 +25,12 @@ func WithLog(log *zap.Logger) httpkit.MiddlewareFunc {
 				zap.Int("bytes_written", wr.BytesWritten()),
 				zap.Duration("took", time.Since(start)),
 			)
+
+			if apiErr != nil {
+				log.Error("error in serving req", zap.Error(apiErr.Err))
+			}
+
+			return apiErr
 		})
 	}
 }

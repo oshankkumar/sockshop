@@ -31,14 +31,18 @@ func (c *Router) InstallRoutes(mux router.Mux) {
 		{http.MethodGet, "/tags", handlers.TagsHandler(c.sockStore)},
 	}
 	for _, r := range routeDefs {
-		mux.Method(r.method, r.pattern, httpkit.ToStdHandler(r.handler))
+		mux.Method(r.method, r.pattern, r.handler)
 	}
 }
 
 func ImageRouter(path string) router.Router {
+	h := http.StripPrefix("/catalogue/images/", http.FileServer(http.Dir(path)))
+	hfunc := func(w http.ResponseWriter, r *http.Request) *httpkit.Error {
+		h.ServeHTTP(w, r)
+		return nil
+	}
+
 	return router.RouterFunc(func(mux router.Mux) {
-		mux.Method(http.MethodGet, "/catalogue/images/*", http.StripPrefix(
-			"/catalogue/images/", http.FileServer(http.Dir(path)),
-		))
+		mux.Method(http.MethodGet, "/catalogue/images/*", httpkit.HandlerFunc(hfunc))
 	})
 }

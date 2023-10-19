@@ -12,7 +12,6 @@ import (
 
 	"github.com/oshankkumar/sockshop/api"
 	"github.com/oshankkumar/sockshop/api/handlers"
-	"github.com/oshankkumar/sockshop/api/httpkit"
 	"github.com/oshankkumar/sockshop/api/middleware"
 	"github.com/oshankkumar/sockshop/api/router"
 	"github.com/oshankkumar/sockshop/api/router/catalogue"
@@ -20,7 +19,6 @@ import (
 	"github.com/oshankkumar/sockshop/internal/app"
 	"github.com/oshankkumar/sockshop/internal/db/mysql"
 
-	"github.com/go-chi/chi/v5"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
@@ -81,7 +79,7 @@ func run(ctx context.Context, conf AppConfig) error {
 		routers = append(routers, user.NewRouter(userService))
 	}
 
-	var mux router.Mux = chi.NewMux()
+	var mux router.Mux = router.NewMux()
 	mux = router.NewInstrumentedMux(mux, middleware.WithLog(logger))
 
 	routers.InstallRoutes(mux)
@@ -115,6 +113,6 @@ func doHealthCheck(db *sqlx.DB) api.HealthCheckerFunc {
 
 func HealthCheckRouter(hc api.HealthChecker) router.Router {
 	return router.RouterFunc(func(m router.Mux) {
-		m.Method(http.MethodGet, "/health", httpkit.ToStdHandler(handlers.HealthCheckHandler(hc)))
+		m.Method(http.MethodGet, "/health", handlers.HealthCheckHandler(hc))
 	})
 }

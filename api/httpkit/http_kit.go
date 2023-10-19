@@ -35,4 +35,16 @@ func RespondJSON(w http.ResponseWriter, v interface{}, status int) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-type MiddlewareFunc func(method, pattern string, h http.Handler) http.Handler
+type MiddlewareFunc func(method, pattern string, h Handler) Handler
+
+func ConvertChiMiddleware(mdlwre func(http.Handler) http.Handler) MiddlewareFunc {
+	return func(method, pattern string, h Handler) Handler {
+		return HandlerFunc(func(w http.ResponseWriter, r *http.Request) *Error {
+			var apiErr *Error
+			mdlwre(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				apiErr = h.ServeHTTP(w, r)
+			})).ServeHTTP(w, r)
+			return apiErr
+		})
+	}
+}

@@ -34,6 +34,6 @@ func (u *Router) InstallRoutes(mux router.Mux) {
 		{http.MethodPost, "/customers/{id}/addresses", handlers.CreateAddressHandler(u.userService)},
 	}
 	for _, r := range routeDefs {
-		mux.Method(r.method, r.pattern, httpkit.ToStdHandler(r.handler))
+		mux.Method(r.method, r.pattern, r.handler)
 	}
 }

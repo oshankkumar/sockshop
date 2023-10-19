@@ -8,20 +8,24 @@ import (
 
 type Mux interface {
 	http.Handler
-	Method(method, pattern string, h http.Handler)
+	Method(method, pattern string, h httpkit.Handler)
 }
 
 type InstrumentedMux struct {
-	Mux
+	base       Mux
 	middleware httpkit.MiddlewareFunc
 }
 
-func (i *InstrumentedMux) Method(method, pattern string, h http.Handler) {
-	i.Mux.Method(method, pattern, i.middleware(method, pattern, h))
+func (i *InstrumentedMux) Method(method, pattern string, h httpkit.Handler) {
+	i.base.Method(method, pattern, i.middleware(method, pattern, h))
+}
+
+func (i *InstrumentedMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	i.base.ServeHTTP(w, r)
 }
 
 func NewInstrumentedMux(m Mux, middleware httpkit.MiddlewareFunc) Mux {
-	return &InstrumentedMux{Mux: m, middleware: middleware}
+	return &InstrumentedMux{base: m, middleware: middleware}
 }
 
 type Router interface {
