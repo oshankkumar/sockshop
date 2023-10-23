@@ -2,12 +2,13 @@ package api
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"net/http"
-	"time"
 
 	"go.uber.org/zap"
 )
+
+var ErrAPIServerClosed = errors.New("api server closed")
 
 type Server struct {
 	Addr   string
@@ -15,36 +16,37 @@ type Server struct {
 	Logger *zap.Logger
 
 	httpServer *http.Server
+	cancel     func()
+	stopErr    chan error
 }
 
 func (s *Server) Start(ctx context.Context) error {
+	ctx, s.cancel = context.WithCancel(ctx)
 	s.httpServer = &http.Server{Addr: s.Addr, Handler: s.Mux}
-	errc := make(chan error, 1)
+	s.stopErr = make(chan error, 1)
 
-	s.Logger.Info("starting app http server :9090")
+	go func() {
+		<-ctx.Done()
+		s.Logger.Info("shutting down api server")
+		s.stopErr <- s.httpServer.Shutdown(context.Background())
+		close(s.stopErr)
+	}()
 
-	go func(errc chan<- error) {
-		if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			errc <- fmt.Errorf("http server shutdonwn: %w", err)
-		}
-	}(errc)
+	s.Logger.Info("starting api server", zap.String("addr", s.Addr))
 
-	shutdown := func(timeout time.Duration) error {
-		s.Logger.Info("received context cancellation; shutting down server")
-
-		shutCtx, cancel := context.WithTimeout(context.Background(), timeout)
-		defer cancel()
-
-		if err := s.httpServer.Shutdown(shutCtx); err != nil {
-			return fmt.Errorf("http server shutdonwn: %w", err)
-		}
-		return nil
-	}
-
-	select {
-	case err := <-errc:
+	if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return err
-	case <-ctx.Done():
-		return shutdown(time.Second * 5)
 	}
+
+	return nil
+}
+
+func (s *Server) Stop() error {
+	s.cancel()
+
+	if err, ok := <-s.stopErr; ok {
+		return err
+	}
+
+	return ErrAPIServerClosed
 }
