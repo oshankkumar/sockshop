@@ -7,18 +7,6 @@ import (
 )
 
 type (
-	// Health describes the health of a service
-	HealthResponse struct {
-		Healths []Health `json:"healths"`
-	}
-
-	Health struct {
-		Service string `json:"service"`
-		Status  string `json:"status"`
-		Time    string `json:"time"`
-		Details any    `json:"details,omitempty"`
-	}
-
 	Sock struct {
 		ID          uuid.UUID `json:"id"`
 		Name        string    `json:"name"`

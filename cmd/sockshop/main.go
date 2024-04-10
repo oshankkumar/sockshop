@@ -5,15 +5,19 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/oshankkumar/sockshop/api"
+	"github.com/oshankkumar/sockshop/api/handlers"
+	"github.com/oshankkumar/sockshop/api/middleware"
+	"github.com/oshankkumar/sockshop/api/router"
+	"github.com/oshankkumar/sockshop/api/router/catalogue"
+	"github.com/oshankkumar/sockshop/api/router/user"
 	"github.com/oshankkumar/sockshop/internal/app"
 	"github.com/oshankkumar/sockshop/internal/db/mysql"
-	"github.com/oshankkumar/sockshop/internal/transport/http"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
@@ -58,29 +62,29 @@ func run(ctx context.Context, conf AppConfig) error {
 		return fmt.Errorf("db ping: %w", err)
 	}
 
-	routers := http.Routers{
-		http.HealthCheckRouter(doHealthCheck(db)),
-		http.ImageServeRouter(conf.ImagePath),
+	routers := router.Routers{
+		HealthCheckRouter(doHealthCheck(db)),
+		catalogue.ImageRouter(conf.ImagePath),
 	}
 
 	{
 		sockStore := mysql.NewSockStore(db)
 		catalogueSvc := app.NewCatalogueService(sockStore)
-		routers = append(routers, &http.CatalogueRoutes{SockLister: catalogueSvc, SockStore: sockStore})
+		routers = append(routers, catalogue.NewRouter(catalogueSvc, sockStore))
 	}
 
 	{
 		userStore := mysql.NewUserStore(db)
 		userService := app.NewUserService(userStore, conf.Domain)
-		routers = append(routers, &http.UserRoutes{UserService: userService})
+		routers = append(routers, user.NewRouter(userService))
 	}
 
-	var mux http.Mux = chi.NewMux()
-	mux = http.NewInstrumentedMux(mux, http.LogginMiddleware(logger))
+	var mux router.Mux = router.NewMux()
+	mux = router.NewInstrumentedMux(mux, middleware.WithLog(logger))
 
 	routers.InstallRoutes(mux)
 
-	apiServer := &http.APIServer{
+	apiServer := &api.Server{
 		Addr:   ":9090",
 		Mux:    mux,
 		Logger: logger,
@@ -89,7 +93,7 @@ func run(ctx context.Context, conf AppConfig) error {
 	return apiServer.Start(ctx)
 }
 
-func doHealthCheck(db *sqlx.DB) http.HealthCheckerFunc {
+func doHealthCheck(db *sqlx.DB) api.HealthCheckerFunc {
 	return func(ctx context.Context) ([]api.Health, error) {
 		if err := db.PingContext(ctx); err != nil {
 			return nil, fmt.Errorf("db ping: %w", err)
@@ -105,4 +109,10 @@ func doHealthCheck(db *sqlx.DB) http.HealthCheckerFunc {
 			{Service: "sockshop-db", Status: "OK", Time: time.Now().Local().String(), Details: db.Stats()},
 		}, nil
 	}
+}
+
+func HealthCheckRouter(hc api.HealthChecker) router.Router {
+	return router.RouterFunc(func(m router.Mux) {
+		m.Method(http.MethodGet, "/health", handlers.HealthCheckHandler(hc))
+	})
 }
