@@ -29,10 +29,10 @@ type sock struct {
 }
 
 type SockStore struct {
-	db db.DBTx
+	db db.DB
 }
 
-func NewSockStore(db db.DBTx) *SockStore {
+func NewSockStore(db db.DB) *SockStore {
 	return &SockStore{db: db}
 }
 

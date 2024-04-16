@@ -50,8 +50,13 @@ func mainE(ctx context.Context, conf AppConfig) error {
 	sockStore := mysql.NewSockStore(db)
 	catalogueSvc := app.NewCatalogueService(sockStore)
 
-	userStore := mysql.NewUserStore(db)
-	userService := app.NewUserService(userStore, conf.Domain)
+	userService := &app.UserService{
+		UserStore:    mysql.NewUserStore(db),
+		CardStore:    mysql.NewCardStore(db),
+		AddressStore: mysql.NewAddressStore(db),
+		TxBeginner:   db,
+		Domain:       conf.Domain,
+	}
 
 	routers := router.Routers{
 		catalogue.ImageRouter(conf.ImagePath),

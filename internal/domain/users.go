@@ -3,6 +3,8 @@ package domain
 import (
 	"context"
 
+	"github.com/oshankkumar/sockshop/internal/db"
+
 	"github.com/google/uuid"
 )
 
@@ -46,12 +48,23 @@ type UserStoreReader interface {
 
 type UserStoreWriter interface {
 	CreateUser(ctx context.Context, user *User) error
-	CreateAddress(ctx context.Context, addr *Address, userID string) error
+	CreateAddress(ctx context.Context, addrID string, userID string) error
 	Delete(ctx context.Context, entity, id string) error
-	CreateCard(ctx context.Context, card *Card, id string) error
+	CreateCard(ctx context.Context, cardID string, id string) error
+}
+
+type CardStore interface {
+	CreateCard(ctx context.Context, card *Card) error
+	WithTx(db db.DB) CardStore
+}
+
+type AddressStore interface {
+	CreateAddress(ctx context.Context, addr *Address) error
+	WithTx(db db.DB) AddressStore
 }
 
 type UserStore interface {
+	WithTx(db db.DB) UserStore
 	UserStoreReader
 	UserStoreWriter
 }

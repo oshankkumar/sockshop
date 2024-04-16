@@ -13,11 +13,20 @@ type DB interface {
 	sqlx.QueryerContext
 }
 
-type TxBeginer interface {
+type TxBeginner interface {
 	BeginTxx(ctx context.Context, opts *sql.TxOptions) (*sqlx.Tx, error)
 }
 
-type DBTx interface {
-	TxBeginer
-	DB
+func RunInTransaction(ctx context.Context, t TxBeginner, runF func(ctx context.Context, tx *sqlx.Tx) error) error {
+	tx, err := t.BeginTxx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if err := runF(ctx, tx); err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
