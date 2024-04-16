@@ -3,7 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
-
+	"errors"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -22,10 +22,10 @@ func RunInTransaction(ctx context.Context, t TxBeginner, runF func(ctx context.C
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
 
 	if err := runF(ctx, tx); err != nil {
-		return err
+		rollbackErr := tx.Rollback()
+		return errors.Join(err, rollbackErr)
 	}
 
 	return tx.Commit()
