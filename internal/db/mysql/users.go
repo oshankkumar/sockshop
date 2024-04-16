@@ -2,7 +2,6 @@ package mysql
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 
@@ -13,14 +12,14 @@ import (
 	"github.com/oshankkumar/sockshop/internal/domain"
 )
 
-const MySQLErrCodeDupe = 1062
+const ErrCodeDupe = 1062
 
-func NewUserStore(db db.DBTx) *UserStore {
+func NewUserStore(db db.DB) *UserStore {
 	return &UserStore{db: db}
 }
 
 type UserStore struct {
-	db db.DBTx
+	db db.DB
 }
 
 func (u *UserStore) GetUserByName(ctx context.Context, uname string) (domain.User, error) {
@@ -150,7 +149,7 @@ func (u *UserStore) CreateUser(ctx context.Context, user *domain.User) error {
 	)
 
 	var mysqlErr *mysql.MySQLError
-	if errors.As(err, &mysqlErr) && mysqlErr.Number == MySQLErrCodeDupe {
+	if errors.As(err, &mysqlErr) && mysqlErr.Number == ErrCodeDupe {
 		return domain.DuplicateEntryError{Entity: "user", Err: err}
 	}
 
@@ -161,17 +160,51 @@ func (u *UserStore) CreateUser(ctx context.Context, user *domain.User) error {
 	return nil
 }
 
-func (u *UserStore) CreateAddress(ctx context.Context, addr *domain.Address, userID string) error {
-	tx, err := u.db.BeginTxx(ctx, &sql.TxOptions{})
-	if err != nil {
-		return err
-	}
-	defer func() { _ = tx.Rollback() }()
+func (u *UserStore) CreateAddress(ctx context.Context, addrID string, userID string) error {
+	query := "INSERT INTO customer_address(customer_id, address_id) VALUES (?, ?)"
 
+	if _, err := u.db.ExecContext(ctx, query, userID, addrID); err != nil {
+		return fmt.Errorf("UserStore.CreateAddress(userID=%s): %w", userID, err)
+	}
+
+	return nil
+}
+
+func (u *UserStore) CreateCard(ctx context.Context, cardID string, userID string) error {
+	query := "INSERT INTO customer_card(customer_id, card_id) VALUES (?, ?)"
+
+	if _, err := u.db.ExecContext(ctx, query, userID, cardID); err != nil {
+		return fmt.Errorf("UserStore.CreateCard(userID=%s): txn.ExecContext(customer_card): %w", userID, err)
+	}
+
+	return nil
+}
+
+func (u *UserStore) WithTx(db db.DB) domain.UserStore {
+	return &UserStore{db: db}
+}
+
+func (u *UserStore) Delete(ctx context.Context, entity string, id string) error {
+	panic("not implemented") // TODO: Implement
+}
+
+func NewAddressStore(db db.DB) *AddressStore {
+	return &AddressStore{db: db}
+}
+
+type AddressStore struct {
+	db db.DB
+}
+
+func (a *AddressStore) WithTx(db db.DB) domain.AddressStore {
+	return &AddressStore{db: db}
+}
+
+func (a *AddressStore) CreateAddress(ctx context.Context, addr *domain.Address) error {
 	addr.ID = uuid.New()
 	query := "INSERT INTO address(id, street, number, country, city, postcode) VALUES (?, ?, ?, ?, ?, ?)"
 
-	_, err = tx.ExecContext(ctx, query,
+	_, err := a.db.ExecContext(ctx, query,
 		addr.ID,
 		addr.Street,
 		addr.Number,
@@ -179,31 +212,28 @@ func (u *UserStore) CreateAddress(ctx context.Context, addr *domain.Address, use
 		addr.City,
 		addr.PostCode,
 	)
-	if err != nil {
-		return err
-	}
 
-	query = "INSERT INTO customer_address(customer_id, address_id) VALUES (?, ?)"
-
-	if _, err = tx.ExecContext(ctx, query, userID, addr.ID); err != nil {
-		return fmt.Errorf("UserStore.CreateAddress(userID=%s): %w", userID, err)
-	}
-
-	return tx.Commit()
+	return err
 }
 
-func (u *UserStore) CreateCard(ctx context.Context, card *domain.Card, userID string) error {
-	tx, err := u.db.BeginTxx(ctx, &sql.TxOptions{})
-	if err != nil {
-		return err
-	}
-	defer func() { _ = tx.Rollback() }()
+func NewCardStore(db db.DB) *CardStore {
+	return &CardStore{db: db}
+}
 
+type CardStore struct {
+	db db.DB
+}
+
+func (c *CardStore) WithTx(db db.DB) domain.CardStore {
+	return &CardStore{db: db}
+}
+
+func (c *CardStore) CreateCard(ctx context.Context, card *domain.Card) error {
 	card.ID = uuid.New()
 
 	query := "INSERT INTO card(id, long_num, expires, ccv) VALUES (?, ?, ?, ?)"
 
-	_, err = tx.ExecContext(ctx, query,
+	_, err := c.db.ExecContext(ctx, query,
 		card.ID,
 		card.LongNum,
 		card.Expires,
@@ -211,23 +241,9 @@ func (u *UserStore) CreateCard(ctx context.Context, card *domain.Card, userID st
 	)
 
 	var mysqlErr *mysql.MySQLError
-	if errors.As(err, &mysqlErr) && mysqlErr.Number == MySQLErrCodeDupe {
+	if errors.As(err, &mysqlErr) && mysqlErr.Number == ErrCodeDupe {
 		return domain.DuplicateEntryError{Entity: "card", Err: err}
 	}
 
-	if err != nil {
-		return fmt.Errorf("UserStore.CreateCard(userID=%s): txn.ExecContext(card): %w", userID, err)
-	}
-
-	query = "INSERT INTO customer_card(customer_id, card_id) VALUES (?, ?)"
-
-	if _, err = tx.ExecContext(ctx, query, userID, card.ID); err != nil {
-		return fmt.Errorf("UserStore.CreateCard(userID=%s): txn.ExecContext(customer_card): %w", userID, err)
-	}
-
-	return tx.Commit()
-}
-
-func (u *UserStore) Delete(ctx context.Context, entity string, id string) error {
-	panic("not implemented") // TODO: Implement
+	return err
 }

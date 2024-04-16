@@ -8,23 +8,24 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/oshankkumar/sockshop/api"
+	"github.com/oshankkumar/sockshop/internal/db"
 	"github.com/oshankkumar/sockshop/internal/domain"
+
+	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 )
 
-func NewUserService(s domain.UserStore, domain string) *UserService {
-	return &UserService{userStore: s, domain: domain}
-}
-
 type UserService struct {
-	userStore domain.UserStore
-	domain    string
+	UserStore    domain.UserStore
+	CardStore    domain.CardStore
+	AddressStore domain.AddressStore
+	TxBeginner   db.TxBeginner
+	Domain       string
 }
 
 func (u *UserService) Login(ctx context.Context, username, password string) (*api.User, error) {
-	user, err := u.userStore.GetUserByName(ctx, username)
+	user, err := u.UserStore.GetUserByName(ctx, username)
 	if err != nil {
 		return nil, fmt.Errorf("UserService.Login(username=%s): %w", username, err)
 	}
@@ -41,7 +42,7 @@ func (u *UserService) Login(ctx context.Context, username, password string) (*ap
 		Username:  username,
 		Email:     user.Email,
 		ID:        user.ID,
-		Links:     api.NewCustomerLinks(u.domain, user.ID.String()),
+		Links:     api.NewCustomerLinks(u.Domain, user.ID.String()),
 	}
 
 	return usr, nil
@@ -58,7 +59,7 @@ func (u *UserService) Register(ctx context.Context, user api.User) (uuid.UUID, e
 
 	userM.Password = calculatePassHash(user.Password, userM.Salt)
 
-	if err := u.userStore.CreateUser(ctx, userM); err != nil {
+	if err := u.UserStore.CreateUser(ctx, userM); err != nil {
 		return uuid.UUID{}, fmt.Errorf("UserService.Register(username=%s): %w", user.Username, err)
 	}
 
@@ -66,7 +67,7 @@ func (u *UserService) Register(ctx context.Context, user api.User) (uuid.UUID, e
 }
 
 func (u *UserService) GetUser(ctx context.Context, id string) (*api.User, error) {
-	user, err := u.userStore.GetUser(ctx, id)
+	user, err := u.UserStore.GetUser(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("UserService.GetUser(id=%s): %w", id, err)
 	}
@@ -77,14 +78,14 @@ func (u *UserService) GetUser(ctx context.Context, id string) (*api.User, error)
 		Username:  user.Username,
 		Email:     user.Email,
 		ID:        user.ID,
-		Links:     api.NewCustomerLinks(u.domain, user.ID.String()),
+		Links:     api.NewCustomerLinks(u.Domain, user.ID.String()),
 	}
 
 	return usr, nil
 }
 
 func (u *UserService) GetUsers(ctx context.Context) ([]api.User, error) {
-	users, err := u.userStore.GetUsers(ctx)
+	users, err := u.UserStore.GetUsers(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("UserService.GetUser: %w", err)
 	}
@@ -98,7 +99,7 @@ func (u *UserService) GetUsers(ctx context.Context) ([]api.User, error) {
 			Username:  user.Username,
 			Email:     user.Email,
 			ID:        user.ID,
-			Links:     api.NewCustomerLinks(u.domain, user.ID.String()),
+			Links:     api.NewCustomerLinks(u.Domain, user.ID.String()),
 		})
 	}
 
@@ -114,8 +115,22 @@ func (u *UserService) CreateAddress(ctx context.Context, addr api.Address, userI
 		PostCode: addr.PostCode,
 	}
 
-	if err := u.userStore.CreateAddress(ctx, addrM, userID); err != nil {
-		return uuid.UUID{}, fmt.Errorf("UserService.CreateAddress(userID=%s): %w", userID, err)
+	err := db.RunInTransaction(ctx, u.TxBeginner, func(ctx context.Context, tx *sqlx.Tx) error {
+		addrStore, userStore := u.AddressStore.WithTx(tx), u.UserStore.WithTx(tx)
+
+		if err := addrStore.CreateAddress(ctx, addrM); err != nil {
+			return err
+		}
+
+		if err := userStore.CreateAddress(ctx, addrM.ID.String(), userID); err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return uuid.UUID{}, fmt.Errorf("%w: UserService.CreateAddress(userID=%s)", err, userID)
 	}
 
 	return addrM.ID, nil
@@ -128,7 +143,21 @@ func (u *UserService) CreateCard(ctx context.Context, card api.Card, userID stri
 		CCV:     card.CCV,
 	}
 
-	if err := u.userStore.CreateCard(ctx, cardM, userID); err != nil {
+	err := db.RunInTransaction(ctx, u.TxBeginner, func(ctx context.Context, tx *sqlx.Tx) error {
+		cardStore, userStore := u.CardStore.WithTx(tx), u.UserStore.WithTx(tx)
+
+		if err := cardStore.CreateCard(ctx, cardM); err != nil {
+			return err
+		}
+
+		if err := userStore.CreateCard(ctx, cardM.ID.String(), userID); err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
 		return uuid.UUID{}, fmt.Errorf("UserService.CreateCard(userID=%s): %w", userID, err)
 	}
 
@@ -136,7 +165,7 @@ func (u *UserService) CreateCard(ctx context.Context, card api.Card, userID stri
 }
 
 func (u *UserService) GetAddresses(ctx context.Context, id string) (*api.Address, error) {
-	addrM, err := u.userStore.GetAddress(ctx, id)
+	addrM, err := u.UserStore.GetAddress(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("UserService.GetAddresses(id=%s): %w", id, err)
 	}
@@ -148,14 +177,14 @@ func (u *UserService) GetAddresses(ctx context.Context, id string) (*api.Address
 		Country:  addrM.Country,
 		City:     addrM.City,
 		PostCode: addrM.PostCode,
-		Links:    api.NewAddressLinks(u.domain, addrM.ID.String()),
+		Links:    api.NewAddressLinks(u.Domain, addrM.ID.String()),
 	}
 
 	return addr, nil
 }
 
 func (u *UserService) GetCard(ctx context.Context, id string) (*api.Card, error) {
-	cardM, err := u.userStore.GetCard(ctx, id)
+	cardM, err := u.UserStore.GetCard(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("UserService.GetCard(id=%s): %w", id, err)
 	}
@@ -165,7 +194,7 @@ func (u *UserService) GetCard(ctx context.Context, id string) (*api.Card, error)
 		LongNum: cardM.LongNum,
 		Expires: cardM.Expires,
 		CCV:     cardM.CCV,
-		Links:   api.NewCardLinks(u.domain, cardM.ID.String()),
+		Links:   api.NewCardLinks(u.Domain, cardM.ID.String()),
 	}
 	card.MaskCC()
 
@@ -173,7 +202,7 @@ func (u *UserService) GetCard(ctx context.Context, id string) (*api.Card, error)
 }
 
 func (u *UserService) GetUserCards(ctx context.Context, userID string) ([]api.Card, error) {
-	cardsM, err := u.userStore.GetUserCards(ctx, userID)
+	cardsM, err := u.UserStore.GetUserCards(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("UserService.GetUserCards(userID=%s): %w", userID, err)
 	}
@@ -185,7 +214,7 @@ func (u *UserService) GetUserCards(ctx context.Context, userID string) ([]api.Ca
 			LongNum: c.LongNum,
 			Expires: c.Expires,
 			CCV:     c.CCV,
-			Links:   api.NewCardLinks(u.domain, c.ID.String()),
+			Links:   api.NewCardLinks(u.Domain, c.ID.String()),
 		}
 		card.MaskCC()
 		cards = append(cards, card)
@@ -195,7 +224,7 @@ func (u *UserService) GetUserCards(ctx context.Context, userID string) ([]api.Ca
 }
 
 func (u *UserService) GetUserAddresses(ctx context.Context, userID string) ([]api.Address, error) {
-	addrsM, err := u.userStore.GetUserAddresses(ctx, userID)
+	addrsM, err := u.UserStore.GetUserAddresses(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("UserService.GetUserAddresses(userID=%s): %w", userID, err)
 	}
@@ -209,7 +238,7 @@ func (u *UserService) GetUserAddresses(ctx context.Context, userID string) ([]ap
 			Country:  adr.Country,
 			City:     adr.City,
 			PostCode: adr.PostCode,
-			Links:    api.NewAddressLinks(u.domain, adr.ID.String()),
+			Links:    api.NewAddressLinks(u.Domain, adr.ID.String()),
 		})
 	}
 
