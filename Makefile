@@ -29,3 +29,9 @@ build-linux:
 
 generate-dep-graph:
 	godepgraph -i github.com/go-chi/chi/v5/middleware,github.com/go-chi/chi/v5,github.com/go-sql-driver/mysql,github.com/google/uuid,github.com/jmoiron/sqlx,go.uber.org/zap  -s ./cmd/sockshop | dot -Tpng -o godepgraph.png
+
+up:
+	docker compose -f docker-compose.yml up -d --wait
+
+down:
+	docker compose down

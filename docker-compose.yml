@@ -33,6 +33,12 @@ services:
       - go-mod-cache:/go/pkg/mod
     depends_on:
       - sockshop-db
+    healthcheck:
+      test: curl --fail http://localhost:9090/health || exit 1
+      interval: 5s
+      timeout: 30s
+      retries: 3
+      start_period: 60s
 
 # Names our volume
 volumes:
