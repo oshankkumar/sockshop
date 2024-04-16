@@ -1,4 +1,4 @@
-package handlers
+package catalogue
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	"github.com/oshankkumar/sockshop/internal/domain"
 )
 
-type SockLister interface {
+type sockLister interface {
 	ListSocks(ctx context.Context, req *api.ListSockParams) (*api.ListSockResponse, error)
 }
 
@@ -30,7 +30,7 @@ type tagsGetter interface {
 	Tags(ctx context.Context) ([]string, error)
 }
 
-func ListSocksHandler(sockLister SockLister) httpkit.HandlerFunc {
+func listSocksHandler(sockLister sockLister) httpkit.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *httpkit.Error {
 		resp, err := sockLister.ListSocks(r.Context(), decodeListReq(r))
 		if err != nil {
@@ -42,7 +42,7 @@ func ListSocksHandler(sockLister SockLister) httpkit.HandlerFunc {
 	}
 }
 
-func CountTagsHandler(tagCounter tagCounter) httpkit.HandlerFunc {
+func countTagsHandler(tagCounter tagCounter) httpkit.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *httpkit.Error {
 		var tags []string
 		if tagsval := r.FormValue("tags"); tagsval != "" {
@@ -59,7 +59,7 @@ func CountTagsHandler(tagCounter tagCounter) httpkit.HandlerFunc {
 	}
 }
 
-func GetSocksHandler(sockGetter sockGetter) httpkit.HandlerFunc {
+func getSocksHandler(sockGetter sockGetter) httpkit.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *httpkit.Error {
 		sock, err := sockGetter.Get(r.Context(), chi.URLParam(r, "id"))
 
@@ -89,7 +89,7 @@ func GetSocksHandler(sockGetter sockGetter) httpkit.HandlerFunc {
 	}
 }
 
-func TagsHandler(t tagsGetter) httpkit.HandlerFunc {
+func tagsHandler(t tagsGetter) httpkit.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *httpkit.Error {
 		tags, err := t.Tags(r.Context())
 		if err != nil {
