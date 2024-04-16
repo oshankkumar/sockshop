@@ -15,7 +15,7 @@ services:
       - "3306"
     volumes:
       - sockshop-db-vol:/var/lib/mysql
-      - ./deploy/docker/sockshop-db:/docker-entrypoint-initdb.d
+      - ${PWD}/deploy/docker/sockshop-db:/docker-entrypoint-initdb.d
 
   sockshop:
     image: golang:1.22.0
@@ -29,7 +29,7 @@ services:
     environment:
       KEY: value
     volumes:
-      - ./:/sockshop
+      - ${PWD}:/sockshop
       - go-mod-cache:/go/pkg/mod
     depends_on:
       - sockshop-db
