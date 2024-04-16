@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/oshankkumar/sockshop/api"
-	"github.com/oshankkumar/sockshop/api/handlers"
 	"github.com/oshankkumar/sockshop/api/httpkit"
 	"github.com/oshankkumar/sockshop/api/router"
 	"github.com/oshankkumar/sockshop/internal/domain"
@@ -23,12 +22,12 @@ func (c *Router) InstallRoutes(mux router.Mux) {
 	routeDefs := []struct {
 		method  string
 		pattern string
-		handler httpkit.Handler
+		handler httpkit.HandlerFunc
 	}{
-		{http.MethodGet, "/catalogue", handlers.ListSocksHandler(c.catalogueService)},
-		{http.MethodGet, "/catalogue/size", handlers.CountTagsHandler(c.sockStore)},
-		{http.MethodGet, "/catalogue/{id}", handlers.GetSocksHandler(c.sockStore)},
-		{http.MethodGet, "/tags", handlers.TagsHandler(c.sockStore)},
+		{http.MethodGet, "/catalogue", listSocksHandler(c.catalogueService)},
+		{http.MethodGet, "/catalogue/size", countTagsHandler(c.sockStore)},
+		{http.MethodGet, "/catalogue/{id}", getSocksHandler(c.sockStore)},
+		{http.MethodGet, "/tags", tagsHandler(c.sockStore)},
 	}
 	for _, r := range routeDefs {
 		mux.Method(r.method, r.pattern, r.handler)

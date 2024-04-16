@@ -1,4 +1,4 @@
-package handlers
+package user
 
 import (
 	"context"
@@ -50,7 +50,7 @@ type addressCreator interface {
 	CreateAddress(ctx context.Context, addr api.Address, userID string) (uuid.UUID, error)
 }
 
-func LoginHandler(l loginService) httpkit.HandlerFunc {
+func loginHandler(l loginService) httpkit.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *httpkit.Error {
 		username, pass, ok := r.BasicAuth()
 		if !ok {
@@ -73,7 +73,7 @@ func LoginHandler(l loginService) httpkit.HandlerFunc {
 	}
 }
 
-func RegisterUserHandler(ur userRegisterationService) httpkit.HandlerFunc {
+func registerUserHandler(ur userRegisterationService) httpkit.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *httpkit.Error {
 		var user api.User
 
@@ -95,7 +95,7 @@ func RegisterUserHandler(ur userRegisterationService) httpkit.HandlerFunc {
 	}
 }
 
-func GetUserHandler(us userGetter) httpkit.HandlerFunc {
+func getUserHandler(us userGetter) httpkit.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *httpkit.Error {
 		userID := chi.URLParam(r, "id")
 		if userID == "" {
@@ -116,7 +116,7 @@ func GetUserHandler(us userGetter) httpkit.HandlerFunc {
 	}
 }
 
-func GetCardHandler(cg cardGetter) httpkit.HandlerFunc {
+func getCardHandler(cg cardGetter) httpkit.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *httpkit.Error {
 		cardID := chi.URLParam(r, "id")
 		if cardID == "" {
@@ -137,7 +137,7 @@ func GetCardHandler(cg cardGetter) httpkit.HandlerFunc {
 	}
 }
 
-func GetUserCardsHandler(cg userCardsGetter) httpkit.HandlerFunc {
+func getUserCardsHandler(cg userCardsGetter) httpkit.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *httpkit.Error {
 		userID := chi.URLParam(r, "id")
 		if userID == "" {
@@ -158,7 +158,7 @@ func GetUserCardsHandler(cg userCardsGetter) httpkit.HandlerFunc {
 	}
 }
 
-func GetAddressHandler(ag addressGetter) httpkit.HandlerFunc {
+func getAddressHandler(ag addressGetter) httpkit.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *httpkit.Error {
 		addrID := chi.URLParam(r, "id")
 		if addrID == "" {
@@ -179,7 +179,7 @@ func GetAddressHandler(ag addressGetter) httpkit.HandlerFunc {
 	}
 }
 
-func GetUserAddressesHandler(ag userAddressesGetter) httpkit.HandlerFunc {
+func getUserAddressesHandler(ag userAddressesGetter) httpkit.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *httpkit.Error {
 		userID := chi.URLParam(r, "id")
 		if userID == "" {
@@ -200,7 +200,7 @@ func GetUserAddressesHandler(ag userAddressesGetter) httpkit.HandlerFunc {
 	}
 }
 
-func CreateCardHandler(cc cardCreator) httpkit.HandlerFunc {
+func createCardHandler(cc cardCreator) httpkit.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *httpkit.Error {
 		userID := chi.URLParam(r, "id")
 		if userID == "" {
@@ -226,7 +226,7 @@ func CreateCardHandler(cc cardCreator) httpkit.HandlerFunc {
 	}
 }
 
-func CreateAddressHandler(ac addressCreator) httpkit.HandlerFunc {
+func createAddressHandler(ac addressCreator) httpkit.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) *httpkit.Error {
 		userID := chi.URLParam(r, "id")
 		if userID == "" {

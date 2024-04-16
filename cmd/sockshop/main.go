@@ -4,14 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/http"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/oshankkumar/sockshop/api"
-	"github.com/oshankkumar/sockshop/api/handlers"
-	"github.com/oshankkumar/sockshop/api/middleware"
 	"github.com/oshankkumar/sockshop/api/router"
 	"github.com/oshankkumar/sockshop/api/router/catalogue"
 	"github.com/oshankkumar/sockshop/api/router/user"
@@ -50,32 +47,23 @@ func mainE(ctx context.Context, conf AppConfig) error {
 		return fmt.Errorf("db ping: %w", err)
 	}
 
+	sockStore := mysql.NewSockStore(db)
+	catalogueSvc := app.NewCatalogueService(sockStore)
+
+	userStore := mysql.NewUserStore(db)
+	userService := app.NewUserService(userStore, conf.Domain)
+
 	routers := router.Routers{
-		HealthCheckRouter(doHealthCheck(db)),
 		catalogue.ImageRouter(conf.ImagePath),
+		catalogue.NewRouter(catalogueSvc, sockStore),
+		user.NewRouter(userService),
 	}
-
-	{
-		sockStore := mysql.NewSockStore(db)
-		catalogueSvc := app.NewCatalogueService(sockStore)
-		routers = append(routers, catalogue.NewRouter(catalogueSvc, sockStore))
-	}
-
-	{
-		userStore := mysql.NewUserStore(db)
-		userService := app.NewUserService(userStore, conf.Domain)
-		routers = append(routers, user.NewRouter(userService))
-	}
-
-	var mux router.Mux = router.NewMux()
-	mux = router.NewInstrumentedMux(mux, middleware.WithLog(logger))
-
-	routers.InstallRoutes(mux)
 
 	apiServer := &api.Server{
-		Addr:   ":9090",
-		Mux:    mux,
-		Logger: logger,
+		Addr:          ":9090",
+		Logger:        logger,
+		HealthChecker: doHealthCheck(db),
+		Router:        routers,
 	}
 
 	return apiServer.Start(ctx)
@@ -97,10 +85,4 @@ func doHealthCheck(db *sqlx.DB) api.HealthCheckerFunc {
 			{Service: "sockshop-db", Status: "OK", Time: time.Now().Local().String(), Details: db.Stats()},
 		}, nil
 	}
-}
-
-func HealthCheckRouter(hc api.HealthChecker) router.Router {
-	return router.RouterFunc(func(m router.Mux) {
-		m.Method(http.MethodGet, "/health", handlers.HealthCheckHandler(hc))
-	})
 }
