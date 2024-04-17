@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/oshankkumar/sockshop/api"
-	"github.com/oshankkumar/sockshop/api/httpkit"
 	"github.com/oshankkumar/sockshop/api/router"
 )
 
@@ -16,12 +15,8 @@ type Router struct {
 	userService api.UserService
 }
 
-func (u *Router) InstallRoutes(mux router.Mux) {
-	routeDefs := []struct {
-		method  string
-		pattern string
-		handler httpkit.Handler
-	}{
+func (u *Router) Routes() []router.Route {
+	return []router.Route{
 		{http.MethodPost, "/login", loginHandler(u.userService)},
 		{http.MethodPost, "/customers", registerUserHandler(u.userService)},
 		{http.MethodGet, "/customers/{id}", getUserHandler(u.userService)},
@@ -31,8 +26,5 @@ func (u *Router) InstallRoutes(mux router.Mux) {
 		{http.MethodGet, "/customers/{id}/addresses", getUserAddressesHandler(u.userService)},
 		{http.MethodPost, "/customers/{id}/cards", createCardHandler(u.userService)},
 		{http.MethodPost, "/customers/{id}/addresses", createAddressHandler(u.userService)},
-	}
-	for _, r := range routeDefs {
-		mux.Method(r.method, r.pattern, r.handler)
 	}
 }

@@ -2,44 +2,30 @@ package router
 
 import (
 	"net/http"
-
-	"github.com/oshankkumar/sockshop/api/httpkit"
 )
 
-type Mux interface {
-	http.Handler
-	Method(method, pattern string, h httpkit.Handler)
-}
-
-type InstrumentedMux struct {
-	base       Mux
-	middleware httpkit.MiddlewareFunc
-}
-
-func (i *InstrumentedMux) Method(method, pattern string, h httpkit.Handler) {
-	i.base.Method(method, pattern, i.middleware(method, pattern, h))
-}
-
-func (i *InstrumentedMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	i.base.ServeHTTP(w, r)
-}
-
-func NewInstrumentedMux(m Mux, middleware httpkit.MiddlewareFunc) Mux {
-	return &InstrumentedMux{base: m, middleware: middleware}
+type Route struct {
+	Method  string
+	Pattern string
+	Handler http.Handler
 }
 
 type Router interface {
-	InstallRoutes(mux Mux)
+	Routes() []Route
 }
 
-type RouterFunc func(Mux)
+type RouterFunc func() []Route
 
-func (r RouterFunc) InstallRoutes(mux Mux) { r(mux) }
+func (r RouterFunc) Routes() []Route {
+	return r()
+}
 
 type Routers []Router
 
-func (rr Routers) InstallRoutes(mux Mux) {
-	for _, r := range rr {
-		r.InstallRoutes(mux)
+func (r Routers) Routes() []Route {
+	var rr []Route
+	for _, rt := range r {
+		rr = append(rr, rt.Routes()...)
 	}
+	return rr
 }

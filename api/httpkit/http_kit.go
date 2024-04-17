@@ -11,22 +11,10 @@ type Error struct {
 	Err     error  `json:"-"`
 }
 
-type Handler interface {
-	ServeHTTP(w http.ResponseWriter, r *http.Request) *Error
-}
-
-type HandlerFunc func(w http.ResponseWriter, r *http.Request) *Error
-
-func (h HandlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) *Error {
-	return h(w, r)
-}
-
-func ToStdHandler(h Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if apiErr := h.ServeHTTP(w, r); apiErr != nil {
-			RespondJSON(w, apiErr, apiErr.Code)
-		}
-	})
+func RespondError(w http.ResponseWriter, apiErr *Error) {
+	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+	w.WriteHeader(apiErr.Code)
+	_ = json.NewEncoder(w).Encode(apiErr)
 }
 
 func RespondJSON(w http.ResponseWriter, v interface{}, status int) {
@@ -35,16 +23,13 @@ func RespondJSON(w http.ResponseWriter, v interface{}, status int) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-type MiddlewareFunc func(method, pattern string, h Handler) Handler
+type MiddlewareFunc func(method, pattern string, h http.Handler) http.Handler
 
-func ConvertChiMiddleware(mdlwre func(http.Handler) http.Handler) MiddlewareFunc {
-	return func(method, pattern string, h Handler) Handler {
-		return HandlerFunc(func(w http.ResponseWriter, r *http.Request) *Error {
-			var apiErr *Error
-			mdlwre(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				apiErr = h.ServeHTTP(w, r)
-			})).ServeHTTP(w, r)
-			return apiErr
-		})
+func ChainMiddleware(mm ...MiddlewareFunc) MiddlewareFunc {
+	return func(method, pattern string, h http.Handler) http.Handler {
+		for i := range mm {
+			h = mm[len(mm)-i-1](method, pattern, h)
+		}
+		return h
 	}
 }

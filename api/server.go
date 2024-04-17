@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 	"sync"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/oshankkumar/sockshop/api/middleware"
 	"github.com/oshankkumar/sockshop/api/router"
 
+	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
 
@@ -26,7 +28,22 @@ type Server struct {
 
 func (s *Server) Start(ctx context.Context) error {
 	ctx, s.cancel = context.WithCancel(ctx)
-	s.httpServer = &http.Server{Addr: s.Addr, Handler: s.createMux()}
+
+	mux := chi.NewMux()
+	mux.Method(http.MethodGet, "/health", http.HandlerFunc(s.health))
+	mux.Method(http.MethodGet, "/metrics", promhttp.Handler())
+
+	middlewareFunc := httpkit.ChainMiddleware(
+		middleware.WithLog(s.Logger),
+		middleware.WithMetrics(),
+	)
+
+	for _, rt := range s.Router.Routes() {
+		handler := middlewareFunc(rt.Method, rt.Pattern, rt.Handler)
+		mux.Method(rt.Method, rt.Pattern, handler)
+	}
+
+	s.httpServer = &http.Server{Addr: s.Addr, Handler: mux}
 
 	go func() {
 		<-ctx.Done()
@@ -44,16 +61,6 @@ func (s *Server) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *Server) createMux() router.Mux {
-	var mux router.Mux = router.NewMux()
-	mux = router.NewInstrumentedMux(mux, middleware.WithLog(s.Logger))
-
-	mux.Method(http.MethodGet, "/health", httpkit.HandlerFunc(s.health))
-	s.Router.InstallRoutes(mux)
-
-	return mux
-}
-
 func (s *Server) Stop() error {
 	s.cancel()
 	var err error
@@ -64,12 +71,12 @@ func (s *Server) Stop() error {
 	return err
 }
 
-func (s *Server) health(w http.ResponseWriter, r *http.Request) *httpkit.Error {
+func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	hh, err := s.HealthChecker.CheckHealth(r.Context())
 	if err != nil {
-		return &httpkit.Error{Code: http.StatusInternalServerError, Message: err.Error(), Err: err}
+		httpkit.RespondError(w, &httpkit.Error{Code: http.StatusInternalServerError, Message: err.Error(), Err: err})
+		return
 	}
 
 	httpkit.RespondJSON(w, HealthResponse{Healths: hh}, http.StatusOK)
-	return nil
 }
