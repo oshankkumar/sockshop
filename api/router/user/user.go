@@ -17,14 +17,14 @@ type Router struct {
 
 func (u *Router) Routes() []router.Route {
 	return []router.Route{
-		{http.MethodPost, "/login", loginHandler(u.userService)},
-		{http.MethodPost, "/customers", registerUserHandler(u.userService)},
-		{http.MethodGet, "/customers/{id}", getUserHandler(u.userService)},
-		{http.MethodGet, "/cards/{id}", getCardHandler(u.userService)},
-		{http.MethodGet, "/addresses/{id}", getAddressHandler(u.userService)},
-		{http.MethodGet, "/customers/{id}/cards", getUserCardsHandler(u.userService)},
-		{http.MethodGet, "/customers/{id}/addresses", getUserAddressesHandler(u.userService)},
-		{http.MethodPost, "/customers/{id}/cards", createCardHandler(u.userService)},
-		{http.MethodPost, "/customers/{id}/addresses", createAddressHandler(u.userService)},
+		{Method: http.MethodPost, Pattern: "/login", Handler: loginHandler(u.userService)},
+		{Method: http.MethodPost, Pattern: "/customers", Handler: registerUserHandler(u.userService)},
+		{Method: http.MethodGet, Pattern: "/customers/{id}", Handler: getUserHandler(u.userService)},
+		{Method: http.MethodGet, Pattern: "/cards/{id}", Handler: getCardHandler(u.userService)},
+		{Method: http.MethodGet, Pattern: "/addresses/{id}", Handler: getAddressHandler(u.userService)},
+		{Method: http.MethodGet, Pattern: "/customers/{id}/cards", Handler: getUserCardsHandler(u.userService)},
+		{Method: http.MethodGet, Pattern: "/customers/{id}/addresses", Handler: getUserAddressesHandler(u.userService)},
+		{Method: http.MethodPost, Pattern: "/customers/{id}/cards", Handler: createCardHandler(u.userService)},
+		{Method: http.MethodPost, Pattern: "/customers/{id}/addresses", Handler: createAddressHandler(u.userService)},
 	}
 }

@@ -19,17 +19,21 @@ type Router struct {
 
 func (c *Router) Routes() []router.Route {
 	return []router.Route{
-		{http.MethodGet, "/catalogue", listSocksHandler(c.catalogueService)},
-		{http.MethodGet, "/catalogue/size", countTagsHandler(c.sockStore)},
-		{http.MethodGet, "/catalogue/{id}", getSocksHandler(c.sockStore)},
-		{http.MethodGet, "/tags", tagsHandler(c.sockStore)},
+		{Method: http.MethodGet, Pattern: "/catalogue", Handler: listSocksHandler(c.catalogueService)},
+		{Method: http.MethodGet, Pattern: "/catalogue/size", Handler: countTagsHandler(c.sockStore)},
+		{Method: http.MethodGet, Pattern: "/catalogue/{id}", Handler: getSocksHandler(c.sockStore)},
+		{Method: http.MethodGet, Pattern: "/tags", Handler: tagsHandler(c.sockStore)},
 	}
 }
 
 func ImageRouter(path string) router.RouterFunc {
 	return func() []router.Route {
 		return []router.Route{
-			{http.MethodGet, "/catalogue/images/*", http.StripPrefix("/catalogue/images/", http.FileServer(http.Dir(path)))},
+			{
+				Method:  http.MethodGet,
+				Pattern: "/catalogue/images/*",
+				Handler: http.StripPrefix("/catalogue/images/", http.FileServer(http.Dir(path))),
+			},
 		}
 	}
 }
