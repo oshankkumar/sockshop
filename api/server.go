@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"errors"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 	"sync"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/oshankkumar/sockshop/api/router"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 )
 
@@ -19,8 +19,8 @@ type Server struct {
 	Addr          string
 	Logger        *zap.Logger
 	HealthChecker HealthChecker
+	Router        router.Router
 
-	Router     router.Router
 	httpServer *http.Server
 	once       sync.Once
 	cancel     func()
@@ -36,11 +36,12 @@ func (s *Server) Start(ctx context.Context) error {
 	middlewareFunc := httpkit.ChainMiddleware(
 		middleware.WithLog(s.Logger),
 		middleware.WithMetrics(),
+		middleware.WithHTTPErrStatus,
 	)
 
 	for _, rt := range s.Router.Routes() {
 		handler := middlewareFunc(rt.Method, rt.Pattern, rt.Handler)
-		mux.Method(rt.Method, rt.Pattern, handler)
+		mux.Method(rt.Method, rt.Pattern, httpkit.DiscardErr(handler))
 	}
 
 	s.httpServer = &http.Server{Addr: s.Addr, Handler: mux}

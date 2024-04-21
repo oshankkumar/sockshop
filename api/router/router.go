@@ -1,13 +1,11 @@
 package router
 
-import (
-	"net/http"
-)
+import "github.com/oshankkumar/sockshop/api/httpkit"
 
 type Route struct {
 	Method  string
 	Pattern string
-	Handler http.Handler
+	Handler httpkit.Handler
 }
 
 type Router interface {

@@ -6,34 +6,53 @@
 A Golang demo web application. It is intended to aid the demonstration of how to write a web application in Golang using SOLID principles.
 This is a rewrite of https://github.dev/microservices-demo/ to demonstrate how to write a Golang web app following SOLID and idiomatic Go principles.
 
-You can also read this [blog post](https://medium.com/@oshankkumar/project-layout-of-golang-web-application-bae212d8f4b6) to know more about how to structure a golang web app.
 ## Overview
 
-This is the basic layout for the Go web app.
+The application is structured to separate concerns and provide a clear separation between the different layers of the application.
 
 ## Package Layout
 
-### `Project tree`
-
 ```
 .
+├── LICENSE
 ├── Makefile
 ├── README.md
 ├── api
 │   ├── address.go
 │   ├── cards.go
 │   ├── errors.go
+│   ├── health.go
+│   ├── httpkit
+│   │   └── http_kit.go
 │   ├── links.go
+│   ├── middleware
+│   │   ├── log.go
+│   │   └── metrics.go
+│   ├── router
+│   │   ├── catalogue
+│   │   │   ├── catalogue.go
+│   │   │   └── routes.go
+│   │   ├── router.go
+│   │   └── user
+│   │       ├── routes.go
+│   │       └── user.go
+│   ├── server.go
 │   ├── socks.go
 │   └── users.go
 ├── assets
 ├── bin
 ├── cmd
 │   └── sockshop
+│       ├── config.go
 │       └── main.go
 ├── deploy
+│   └── docker
+│       └── sockshop-db
+│           └── catalogue_dump.sql
+├── docker-compose.yml
 ├── go.mod
 ├── go.sum
+├── godepgraph.png
 └── internal
     ├── app
     │   ├── catalogue.go
@@ -44,23 +63,21 @@ This is the basic layout for the Go web app.
     │       ├── socks.go
     │       ├── sqlx.go
     │       └── users.go
-    ├── domain
-    │   ├── errors.go
-    │   ├── socks.go
-    │   └── users.go
-    └── transport
-        ├── grpc
-        └── http
-            ├── catalogue_handler.go
-            ├── middleware.go
-            ├── routes.go
-            ├── server.go
-            └── users_handler.go
+    └── domain
+        ├── errors.go
+        ├── socks.go
+        └── users.go
 
 ```
+
+## Description
+
 ### `/api`
 `api` package should only contain the request and response schema. It should not have any application logic or dependency. Additionally It can also contain interface definitions. Which can use the defined request and respose schema as input/output parmas in the interface methods.
 It should not contain any concrete type which implements those interface. This will provide an abstraction to your business logic.
+
+### `/api/router`
+Contains all HTTP routes for the application. All routes implement the Router interface defined in api/router.go.
 
 See [/api](./api/) package for example.
 
@@ -86,14 +103,12 @@ The actual implementation could be catered using a database or a third party API
 
 See [/internal/domain](./internal/domain/) package for example.
 
-### `internal/transport`
-
-This package should contain the application transport layer (eg ..http,grpc ..etc). You can define your application http Handlers in `/transport/http` package. 
-
-See [/internal/transport/http](./internal/transport/http) package for example. 
-
 ## Dependency graph
 
 Generated using github.com/kisielk/godepgraph
 
 ![Dependency Graph](godepgraph.png)
+
+## Usage
+
+Run the application using `make run` and to stop the application run `make clean`

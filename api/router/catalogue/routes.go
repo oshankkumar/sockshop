@@ -30,20 +30,20 @@ type tagsGetter interface {
 	Tags(ctx context.Context) ([]string, error)
 }
 
-func listSocksHandler(sockLister sockLister) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func listSocksHandler(sockLister sockLister) httpkit.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) error {
 		resp, err := sockLister.ListSocks(r.Context(), decodeListReq(r))
 		if err != nil {
-			httpkit.RespondError(w, &httpkit.Error{Code: http.StatusInternalServerError, Message: "failed to list socks", Err: err})
-			return
+			return &httpkit.Error{Code: http.StatusInternalServerError, Message: "failed to list socks", Err: err}
 		}
 
 		httpkit.RespondJSON(w, resp, http.StatusOK)
+		return nil
 	}
 }
 
-func countTagsHandler(tagCounter tagCounter) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func countTagsHandler(tagCounter tagCounter) httpkit.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) error {
 		var tags []string
 		if tagsval := r.FormValue("tags"); tagsval != "" {
 			tags = strings.Split(tagsval, ",")
@@ -51,25 +51,23 @@ func countTagsHandler(tagCounter tagCounter) http.HandlerFunc {
 
 		c, err := tagCounter.Count(r.Context(), tags)
 		if err != nil {
-			httpkit.RespondError(w, &httpkit.Error{Code: http.StatusInternalServerError, Message: "failed to count tags", Err: err})
-			return
+			return &httpkit.Error{Code: http.StatusInternalServerError, Message: "failed to count tags", Err: err}
 		}
 
 		httpkit.RespondJSON(w, &api.CountTagsResponse{Size: c}, http.StatusOK)
+		return nil
 	}
 }
 
-func getSocksHandler(sockGetter sockGetter) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func getSocksHandler(sockGetter sockGetter) httpkit.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) error {
 		sock, err := sockGetter.Get(r.Context(), chi.URLParam(r, "id"))
 
 		switch {
 		case errors.Is(err, domain.ErrNotFound):
-			httpkit.RespondError(w, &httpkit.Error{Code: http.StatusNotFound, Message: "failed to get sock", Err: err})
-			return
+			return &httpkit.Error{Code: http.StatusNotFound, Message: "failed to get sock", Err: err}
 		case err != nil:
-			httpkit.RespondError(w, &httpkit.Error{Code: http.StatusInternalServerError, Message: "failed to get sock", Err: err})
-			return
+			return &httpkit.Error{Code: http.StatusInternalServerError, Message: "failed to get sock", Err: err}
 		}
 
 		var tags []string
@@ -86,18 +84,19 @@ func getSocksHandler(sockGetter sockGetter) http.HandlerFunc {
 			Count:       sock.Count,
 			Tags:        tags,
 		}, http.StatusOK)
+		return nil
 	}
 }
 
-func tagsHandler(t tagsGetter) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func tagsHandler(t tagsGetter) httpkit.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) error {
 		tags, err := t.Tags(r.Context())
 		if err != nil {
-			httpkit.RespondError(w, &httpkit.Error{Code: http.StatusInternalServerError, Message: "failed to get tags", Err: err})
-			return
+			return &httpkit.Error{Code: http.StatusInternalServerError, Message: "failed to get tags", Err: err}
 		}
 
 		httpkit.RespondJSON(w, api.TagsResponse{Tags: tags}, http.StatusOK)
+		return nil
 	}
 }
 

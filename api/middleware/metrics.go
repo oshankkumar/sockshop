@@ -41,8 +41,8 @@ func WithMetrics() httpkit.MiddlewareFunc {
 		}, []string{"method", "pattern"})
 	)
 
-	return func(method, pattern string, h http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(method, pattern string, h httpkit.Handler) httpkit.Handler {
+		return httpkit.HandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 			start := time.Now()
 
 			wr, ok := w.(middleware.WrapResponseWriter)
@@ -50,7 +50,7 @@ func WithMetrics() httpkit.MiddlewareFunc {
 				wr = middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 			}
 
-			h.ServeHTTP(wr, r)
+			err := h.ServeHTTP(wr, r)
 
 			took := time.Since(start).Milliseconds()
 
@@ -59,6 +59,7 @@ func WithMetrics() httpkit.MiddlewareFunc {
 			reqCount.WithLabelValues(method, pattern, code).Inc()
 			reqLatency.WithLabelValues(method, pattern, code).Observe(float64(took))
 			respSize.WithLabelValues(method, pattern).Observe(float64(wr.BytesWritten()))
+			return err
 		})
 	}
 }

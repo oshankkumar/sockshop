@@ -28,10 +28,10 @@ build-linux:
 	$(call MAKE_GO_BUILD_LINUX,sockshop)
 
 generate-dep-graph:
-	godepgraph -i github.com/go-chi/chi/v5/middleware,github.com/go-chi/chi/v5,github.com/go-sql-driver/mysql,github.com/google/uuid,github.com/jmoiron/sqlx,go.uber.org/zap  -s ./cmd/sockshop | dot -Tpng -o godepgraph.png
+	godepgraph -i github.com/go-chi/chi/v5/middleware,github.com/go-chi/chi/v5,github.com/go-sql-driver/mysql,github.com/google/uuid,github.com/jmoiron/sqlx,go.uber.org/zap,github.com/prometheus/client_golang/prometheus,github.com/prometheus/client_golang/prometheus/promauto,github.com/prometheus/client_golang/prometheus/promhttp  -s ./cmd/sockshop | dot -Tpng -o godepgraph.png
 
-up:
+run:
 	docker compose -f docker-compose.yml up -d --wait
 
-down:
+clean:
 	docker compose down

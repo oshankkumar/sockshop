@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/oshankkumar/sockshop/api"
+	"github.com/oshankkumar/sockshop/api/httpkit"
 	"github.com/oshankkumar/sockshop/api/router"
 	"github.com/oshankkumar/sockshop/internal/domain"
 )
@@ -28,11 +29,17 @@ func (c *Router) Routes() []router.Route {
 
 func ImageRouter(path string) router.RouterFunc {
 	return func() []router.Route {
+		h := http.StripPrefix("/catalogue/images/", http.FileServer(http.Dir(path)))
+		hFunc := func(w http.ResponseWriter, r *http.Request) error {
+			h.ServeHTTP(w, r)
+			return nil
+		}
+
 		return []router.Route{
 			{
 				Method:  http.MethodGet,
 				Pattern: "/catalogue/images/*",
-				Handler: http.StripPrefix("/catalogue/images/", http.FileServer(http.Dir(path))),
+				Handler: httpkit.HandlerFunc(hFunc),
 			},
 		}
 	}
