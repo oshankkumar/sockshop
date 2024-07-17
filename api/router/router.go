@@ -18,12 +18,12 @@ func (r RouterFunc) Routes() []Route {
 	return r()
 }
 
-type Routers []Router
-
-func (r Routers) Routes() []Route {
-	var rr []Route
-	for _, rt := range r {
-		rr = append(rr, rt.Routes()...)
-	}
-	return rr
+func ComposeRouters(rr ...Router) Router {
+	return RouterFunc(func() []Route {
+		var rtt []Route
+		for _, rt := range rr {
+			rtt = append(rtt, rt.Routes()...)
+		}
+		return rtt
+	})
 }

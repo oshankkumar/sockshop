@@ -58,17 +58,16 @@ func mainE(ctx context.Context, conf AppConfig) error {
 		Domain:       conf.Domain,
 	}
 
-	routers := router.Routers{
+	rt := router.ComposeRouters(
 		catalogue.ImageRouter(conf.ImagePath),
 		catalogue.NewRouter(catalogueSvc, sockStore),
 		user.NewRouter(userService),
-	}
-
+	)
 	apiServer := &api.Server{
 		Addr:          ":9090",
 		Logger:        logger,
 		HealthChecker: doHealthCheck(db),
-		Router:        routers,
+		Router:        rt,
 	}
 
 	return apiServer.Start(ctx)
